@@ -1,206 +1,61 @@
-// Mock data for development mode
-export const mockApplications = [
-  {
-    id: "rsshub",
-    name: "rsshub",
-    displayName: "RSSHub",
-    description: "🍰 Everything is RSSible - RSS 聚合器，支持各种奇怪的格式",
-    category: "network-tools",
-    version: "latest",
-    stars: 28500,
-    port: 1200,
-    isInstalled: false,
-    yaml: `version: '3.8'
-services:
-  rsshub:
-    image: diygod/rsshub:latest
-    container_name: rsshub
-    ports:
-      - "1200:1200"
-    environment:
-      NODE_ENV: production
-      CACHE_TYPE: redis
-      REDIS_URL: redis://redis:6379/
-    depends_on:
-      - redis
-    restart: unless-stopped
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.rsshub.rule=Host(\`rsshub.{DEFAULT_DOMAIN}\`)"
-      - "traefik.http.services.rsshub.loadbalancer.server.port=1200"
+import * as fs from 'fs';
+import * as path from 'path';
+import yaml from 'js-yaml';
 
-  redis:
-    image: redis:alpine
-    container_name: rsshub-redis
-    restart: unless-stopped
-    volumes:
-      - redis_data:/data
+// Load applications from local YAML files
+function loadApplicationsFromYaml() {
+  const appsDir = path.join(process.cwd(), 'apps');
+  const applications = [];
 
-volumes:
-  redis_data:`
-  },
-  {
-    id: "grafana",
-    name: "grafana",
-    displayName: "Grafana",
-    description: "📊 开源可观测平台，用于监控和分析指标数据",
-    category: "monitoring",
-    version: "latest",
-    stars: 58900,
-    port: 3000,
-    isInstalled: false,
-    yaml: `version: '3.8'
-services:
-  grafana:
-    image: grafana/grafana:latest
-    container_name: grafana
-    ports:
-      - "3000:3000"
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin123
-      - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_SERVER_DOMAIN={DEFAULT_DOMAIN}
-      - GF_SERVER_ROOT_URL=https://grafana.{DEFAULT_DOMAIN}
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - grafana_config:/etc/grafana
-    restart: unless-stopped
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.grafana.rule=Host(\`grafana.{DEFAULT_DOMAIN}\`)"
-      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
-
-volumes:
-  grafana_data:
-  grafana_config:`
-  },
-  {
-    id: "portainer",
-    name: "portainer",
-    displayName: "Portainer",
-    description: "🐳 Docker 容器管理界面，轻量级容器管理解决方案",
-    category: "dev-tools",
-    version: "latest",
-    stars: 28100,
-    port: 9000,
-    isInstalled: false,
-    yaml: `version: '3.8'
-services:
-  portainer:
-    image: portainer/portainer-ce:latest
-    container_name: portainer
-    ports:
-      - "9000:9000"
-      - "9443:9443"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - portainer_data:/data
-    restart: unless-stopped
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.portainer.rule=Host(\`portainer.{DEFAULT_DOMAIN}\`)"
-      - "traefik.http.services.portainer.loadbalancer.server.port=9000"
-
-volumes:
-  portainer_data:`
-  },
-  {
-    id: "redis",
-    name: "redis",
-    displayName: "Redis",
-    description: "⚡ 内存数据库，高性能键值存储",
-    category: "database",
-    version: "alpine",
-    stars: 62400,
-    port: 6379,
-    isInstalled: false,
-    yaml: `version: '3.8'
-services:
-  redis:
-    image: redis:alpine
-    container_name: redis
-    ports:
-      - "6379:6379"
-    command: redis-server --appendonly yes --requirepass redis123
-    volumes:
-      - redis_data:/data
-    restart: unless-stopped
-    labels:
-      - "traefik.enable=false"
-
-volumes:
-  redis_data:`
-  },
-  {
-    id: "nginx",
-    name: "nginx",
-    displayName: "Nginx",
-    description: "🌐 高性能Web服务器和反向代理",
-    category: "network-tools",
-    version: "alpine",
-    stars: 15200,
-    port: 80,
-    isInstalled: false,
-    yaml: `version: '3.8'
-services:
-  nginx:
-    image: nginx:alpine
-    container_name: nginx
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - nginx_conf:/etc/nginx/conf.d
-      - nginx_html:/usr/share/nginx/html
-      - nginx_logs:/var/log/nginx
-    restart: unless-stopped
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.nginx.rule=Host(\`web.{DEFAULT_DOMAIN}\`)"
-      - "traefik.http.services.nginx.loadbalancer.server.port=80"
-
-volumes:
-  nginx_conf:
-  nginx_html:
-  nginx_logs:`
-  },
-  {
-    id: "prometheus",
-    name: "prometheus",
-    displayName: "Prometheus",
-    description: "🔥 开源监控和告警工具包",
-    category: "monitoring",
-    version: "latest",
-    stars: 52300,
-    port: 9090,
-    isInstalled: false,
-    yaml: `version: '3.8'
-services:
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: prometheus
-    ports:
-      - "9090:9090"
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--web.enable-lifecycle'
-    volumes:
-      - prometheus_config:/etc/prometheus
-      - prometheus_data:/prometheus
-    restart: unless-stopped
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.prometheus.rule=Host(\`prometheus.{DEFAULT_DOMAIN}\`)"
-      - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
-
-volumes:
-  prometheus_config:
-  prometheus_data:`
+  if (!fs.existsSync(appsDir)) {
+    console.warn('Apps directory not found, using empty array');
+    return [];
   }
-];
+
+  const files = fs.readdirSync(appsDir);
+  
+  for (const file of files) {
+    if (file.endsWith('.yaml') || file.endsWith('.yml')) {
+      try {
+        const filePath = path.join(appsDir, file);
+        const yamlContent = fs.readFileSync(filePath, 'utf8');
+        const appData = yaml.load(yamlContent) as any;
+        
+        if (appData.metadata) {
+          applications.push({
+            id: appData.metadata.id || file.replace(/\.(yaml|yml)$/, ''),
+            name: appData.metadata.name || file.replace(/\.(yaml|yml)$/, ''),
+            displayName: appData.metadata.displayName || appData.metadata.name,
+            description: appData.metadata.description || '',
+            category: appData.metadata.category || 'other',
+            version: appData.metadata.version || 'latest',
+            stars: appData.metadata.stars || 0,
+            port: appData.spec?.port || 80,
+            icon: appData.metadata.icon || '',
+            author: appData.metadata.author || '',
+            website: appData.metadata.website || '',
+            isInstalled: false,
+            yaml: yamlContent
+          });
+        }
+      } catch (error) {
+        console.error(`Error loading ${file}:`, error);
+      }
+    }
+  }
+  
+  return applications;
+}
+
+// Mock data for development mode
+export const mockApplications = loadApplicationsFromYaml();
+
+// Log loaded applications for debugging
+console.log(`Loaded ${mockApplications.length} applications from local YAML files:`, 
+  mockApplications.map(app => ({ id: app.id, name: app.displayName }))
+);
+
+// Mock services data
 
 export const mockServices = [
   {

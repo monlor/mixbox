@@ -36,16 +36,18 @@ Preferred communication style: Simple, everyday language.
 - **Security**: HTTP-only cookies with secure flags and CSRF protection
 
 ## Service Management
-- **Configuration Format**: YAML-based service definitions with metadata and specifications
-- **Docker Integration**: Docker Compose generation from YAML configurations
+- **Configuration Format**: Standardized YAML-based service definitions with metadata, spec, and services sections
+- **Docker Integration**: Complete Docker Compose generation from YAML configurations with mock service simulation
 - **Service Lifecycle**: Create, update, start, stop, and delete operations for containerized services
 - **Domain Management**: Automatic subdomain assignment with Traefik integration for reverse proxy
+- **Mock Operations**: Full Docker service simulation with realistic delays and status management for development
 
 ## Application Marketplace
-- **Source**: GitHub repository integration for fetching application templates
-- **Discovery**: Category-based filtering and search functionality
+- **Source**: Local YAML files in `/apps` directory, with GitHub repository integration for remote fetching
+- **Discovery**: Category-based filtering and search functionality with real application metadata
 - **Installation**: One-click deployment from marketplace applications to running services
-- **Customization**: User-configurable parameters during installation process
+- **Configuration**: Complete YAML-based application definitions including Docker Compose specifications
+- **Development Mode**: Direct local file system reading for rapid development and testing
 
 # External Dependencies
 

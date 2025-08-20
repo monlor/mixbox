@@ -1,0 +1,52 @@
+metadata:
+  id: grafana
+  name: grafana
+  displayName: Grafana
+  description: 📊 开源可观测平台，用于监控和分析指标数据
+  category: monitoring
+  version: latest
+  stars: 58900
+  icon: https://grafana.com/static/img/menu/grafana2.svg
+  author: Grafana Labs
+  website: https://grafana.com/
+
+spec:
+  image: grafana/grafana:latest
+  port: 3000
+  env:
+    GF_SECURITY_ADMIN_PASSWORD: admin123
+    GF_USERS_ALLOW_SIGN_UP: "false"
+    GF_SERVER_DOMAIN: "{DEFAULT_DOMAIN}"
+    GF_SERVER_ROOT_URL: "https://grafana.{DEFAULT_DOMAIN}"
+  volumes:
+    - grafana_data:/var/lib/grafana
+    - grafana_config:/etc/grafana
+  healthcheck:
+    test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
+    interval: 30s
+    timeout: 10s
+    retries: 3
+
+services:
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_DOMAIN={DEFAULT_DOMAIN}
+      - GF_SERVER_ROOT_URL=https://grafana.{DEFAULT_DOMAIN}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - grafana_config:/etc/grafana
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.{DEFAULT_DOMAIN}`)"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+
+volumes:
+  grafana_data:
+  grafana_config:

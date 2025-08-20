@@ -1,0 +1,46 @@
+metadata:
+  id: portainer
+  name: portainer
+  displayName: Portainer
+  description: 🐳 Docker 容器管理界面，轻量级容器管理解决方案
+  category: dev-tools
+  version: latest
+  stars: 28100
+  icon: https://www.portainer.io/hubfs/portainer-logo-black.svg
+  author: Portainer.io
+  website: https://www.portainer.io/
+
+spec:
+  image: portainer/portainer-ce:latest
+  port: 9000
+  ports:
+    - 9000
+    - 9443
+  volumes:
+    - /var/run/docker.sock:/var/run/docker.sock
+    - portainer_data:/data
+  privileged: true
+  healthcheck:
+    test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9000/"]
+    interval: 30s
+    timeout: 10s
+    retries: 3
+
+services:
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    ports:
+      - "9000:9000"
+      - "9443:9443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.portainer.rule=Host(`portainer.{DEFAULT_DOMAIN}`)"
+      - "traefik.http.services.portainer.loadbalancer.server.port=9000"
+
+volumes:
+  portainer_data:

@@ -134,9 +134,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/applications/sync', isAuthenticated, async (req: any, res) => {
     try {
-      // In development mode, simulate sync delay and return mock applications
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      res.json(mockApplications);
+      if (process.env.NODE_ENV === 'production') {
+        // In production, fetch from GitHub repository
+        const githubUrl = 'https://api.github.com/repos/your-username/mixbox/contents/apps';
+        const response = await fetch(githubUrl);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch from GitHub');
+        }
+
+        const files = await response.json();
+        const applications = [];
+
+        for (const file of files) {
+          if (file.name.endsWith('.yaml') || file.name.endsWith('.yml')) {
+            try {
+              const yamlResponse = await fetch(file.download_url);
+              const yamlContent = await yamlResponse.text();
+              const appData = yaml.load(yamlContent) as any;
+
+              if (appData.metadata) {
+                applications.push({
+                  id: appData.metadata.id,
+                  name: appData.metadata.name,
+                  displayName: appData.metadata.displayName,
+                  description: appData.metadata.description,
+                  category: appData.metadata.category,
+                  version: appData.metadata.version,
+                  stars: appData.metadata.stars,
+                  port: appData.spec?.port,
+                  icon: appData.metadata.icon,
+                  author: appData.metadata.author,
+                  website: appData.metadata.website,
+                  isInstalled: false,
+                  yaml: yamlContent
+                });
+              }
+            } catch (error) {
+              console.error(`Error processing ${file.name}:`, error);
+            }
+          }
+        }
+        res.json(applications);
+      } else {
+        // In development mode, use local files
+        await new Promise(resolve => setTimeout(resolve, 500));
+        res.json(mockApplications);
+      }
     } catch (error) {
       console.error("Error syncing applications:", error);
       res.status(500).json({ message: "Failed to sync applications" });
