@@ -303,6 +303,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Service management routes
+  app.post('/api/services/:id/start', isAuthenticated, async (req: any, res) => {
+    try {
+      await mockDockerService.startService(req.params.id);
+      res.json({ message: "Service started successfully" });
+    } catch (error) {
+      console.error("Error starting service:", error);
+      res.status(500).json({ message: "Failed to start service" });
+    }
+  });
+
+  app.post('/api/services/:id/stop', isAuthenticated, async (req: any, res) => {
+    try {
+      await mockDockerService.stopService(req.params.id);
+      res.json({ message: "Service stopped successfully" });
+    } catch (error) {
+      console.error("Error stopping service:", error);
+      res.status(500).json({ message: "Failed to stop service" });
+    }
+  });
+
+  app.delete('/api/services/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      await mockDockerService.removeService(req.params.id);
+      res.json({ message: "Service removed successfully" });
+    } catch (error) {
+      console.error("Error removing service:", error);
+      res.status(500).json({ message: "Failed to remove service" });
+    }
+  });
+
+  app.get('/api/services/:id/logs', isAuthenticated, async (req: any, res) => {
+    try {
+      const logs = await mockDockerService.getServiceLogs(req.params.id);
+      res.json(logs);
+    } catch (error) {
+      console.error("Error fetching service logs:", error);
+      res.status(500).json({ message: "Failed to fetch service logs" });
+    }
+  });
+
   // Settings routes
   app.get('/api/settings', isAuthenticated, async (req: any, res) => {
     try {
