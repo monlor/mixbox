@@ -102,7 +102,7 @@ export default function Marketplace() {
     );
   }
 
-  const filteredApps = applications?.filter((app: any) => {
+  const filteredApps = (applications as any[])?.filter((app: any) => {
     const matchesCategory = selectedCategory === 'all' || app.category === selectedCategory;
     const matchesSearch = app.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          app.description.toLowerCase().includes(searchTerm.toLowerCase());
@@ -111,50 +111,54 @@ export default function Marketplace() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar />
+      <div className="hidden md:block">
+        <Sidebar />
+      </div>
       
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header title="应用市场" />
         
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6">
           <div className="mb-6">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4">
               <div>
                 <h2 className="text-xl font-bold text-gray-900">应用市场</h2>
-                <p className="text-gray-600">从 GitHub 仓库加载的可安装应用</p>
+                <p className="text-gray-600 text-sm sm:text-base">从 GitHub 仓库加载的可安装应用</p>
               </div>
-              <div className="flex items-center space-x-3">
-                <Button 
-                  variant="outline" 
-                  onClick={() => syncMutation.mutate()}
-                  disabled={syncMutation.isPending}
-                >
-                  <i className="fas fa-sync-alt mr-2"></i>
-                  {syncMutation.isPending ? '同步中...' : '刷新'}
-                </Button>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
                 <div className="relative">
                   <Input
                     type="text"
                     placeholder="搜索应用..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 w-64"
+                    className="pl-10 w-full sm:w-64"
                   />
                   <i className="fas fa-search absolute left-3 top-3 text-gray-400 text-sm"></i>
                 </div>
+                <Button 
+                  variant="outline" 
+                  onClick={() => syncMutation.mutate()}
+                  disabled={syncMutation.isPending}
+                  className="w-full sm:w-auto"
+                >
+                  <i className="fas fa-sync-alt mr-2"></i>
+                  {syncMutation.isPending ? '同步中...' : '刷新'}
+                </Button>
               </div>
             </div>
 
             {/* Categories */}
-            <div className="flex items-center space-x-4 mb-6">
-              <span className="text-sm font-medium text-gray-700">分类:</span>
-              <div className="flex space-x-2">
+            <div className="mb-6">
+              <span className="text-sm font-medium text-gray-700 mb-3 block">分类:</span>
+              <div className="flex flex-wrap gap-2">
                 {categories.map((category) => (
                   <Button
                     key={category.id}
                     variant={selectedCategory === category.id ? "default" : "outline"}
                     size="sm"
                     onClick={() => setSelectedCategory(category.id)}
+                    className="text-xs sm:text-sm"
                   >
                     {category.name}
                   </Button>
@@ -165,9 +169,9 @@ export default function Marketplace() {
 
           {/* Applications Grid */}
           {appsLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
               {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                <Card key={i} className="p-6">
+                <Card key={i} className="p-4 sm:p-6">
                   <Skeleton className="h-12 w-12 rounded-lg mb-4" />
                   <Skeleton className="h-6 w-3/4 mb-2" />
                   <Skeleton className="h-16 w-full mb-4" />
@@ -180,14 +184,14 @@ export default function Marketplace() {
               <CardContent className="text-center py-12">
                 <i className="fas fa-store text-4xl text-gray-400 mb-4"></i>
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  {applications?.length === 0 ? '暂无应用' : '未找到匹配的应用'}
+                  {(applications as any[])?.length === 0 ? '暂无应用' : '未找到匹配的应用'}
                 </h3>
                 <p className="text-gray-500 mb-4">
-                  {applications?.length === 0 
+                  {(applications as any[])?.length === 0 
                     ? '点击刷新按钮从 GitHub 同步应用列表' 
                     : '尝试更改搜索条件或分类'}
                 </p>
-                {applications?.length === 0 && (
+                {(applications as any[])?.length === 0 && (
                   <Button onClick={() => syncMutation.mutate()}>
                     同步应用列表
                   </Button>
@@ -195,7 +199,7 @@ export default function Marketplace() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
               {filteredApps.map((app: any) => (
                 <AppCard 
                   key={app.id} 

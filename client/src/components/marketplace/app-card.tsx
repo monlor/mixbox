@@ -55,20 +55,20 @@ export default function AppCard({ app, onInstall }: AppCardProps) {
 
   return (
     <Card className="hover:shadow-md transition-shadow">
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between mb-4">
-          <div className="w-12 h-12 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center">
-            <i className={`${getIconClass()} text-xl`}></i>
+      <CardContent className="p-4 sm:p-6">
+        <div className="flex items-start justify-between mb-3 sm:mb-4">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center">
+            <i className={`${getIconClass()} text-lg sm:text-xl`}></i>
           </div>
           <Badge className={`text-xs ${getCategoryColor()}`}>
             {getCategoryName()}
           </Badge>
         </div>
 
-        <h3 className="font-semibold text-gray-900 mb-2">{app.displayName}</h3>
-        <p className="text-sm text-gray-600 mb-4 line-clamp-3">{app.description}</p>
+        <h3 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">{app.displayName}</h3>
+        <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4 line-clamp-2 sm:line-clamp-3">{app.description}</p>
         
-        <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+        <div className="flex items-center justify-between text-xs sm:text-sm text-gray-500 mb-3 sm:mb-4">
           <div className="flex items-center space-x-1">
             <i className="fas fa-star text-yellow-400"></i>
             <span>{app.stars || '0'}</span>
@@ -77,13 +77,13 @@ export default function AppCard({ app, onInstall }: AppCardProps) {
         </div>
 
         {app.isInstalled ? (
-          <Button className="w-full" variant="outline" disabled>
-            <i className="fas fa-check mr-2"></i>
+          <Button className="w-full text-xs sm:text-sm" variant="outline" disabled size="sm">
+            <i className="fas fa-check mr-1 sm:mr-2"></i>
             已安装
           </Button>
         ) : (
-          <Button className="w-full" onClick={() => onInstall(app)}>
-            <i className="fas fa-download mr-2"></i>
+          <Button className="w-full text-xs sm:text-sm" onClick={() => onInstall(app)} size="sm">
+            <i className="fas fa-download mr-1 sm:mr-2"></i>
             安装
           </Button>
         )}

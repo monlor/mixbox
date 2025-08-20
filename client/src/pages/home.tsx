@@ -59,20 +59,22 @@ export default function Home() {
     );
   }
 
-  const runningServices = services?.filter((s: any) => s.status === 'running') || [];
-  const stoppedServices = services?.filter((s: any) => s.status === 'stopped') || [];
-  const totalServices = services?.length || 0;
+  const runningServices = (services as any[])?.filter((s: any) => s.status === 'running') || [];
+  const stoppedServices = (services as any[])?.filter((s: any) => s.status === 'stopped') || [];
+  const totalServices = (services as any[])?.length || 0;
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar />
+      <div className="hidden md:block">
+        <Sidebar />
+      </div>
       
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header title="服务管理" />
         
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6">
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
             <Card>
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
@@ -133,20 +135,24 @@ export default function Home() {
           {/* Services Section */}
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <CardTitle className="text-lg font-semibold text-gray-900">已安装服务</CardTitle>
-                <div className="flex items-center space-x-3">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
                   <div className="relative">
                     <Input
                       type="text"
                       placeholder="搜索服务..."
-                      className="pl-10 w-64"
+                      className="pl-10 w-full sm:w-64"
                     />
                     <i className="fas fa-search absolute left-3 top-3 text-gray-400 text-sm"></i>
                   </div>
-                  <Button onClick={() => window.location.href = '/marketplace'}>
+                  <Button 
+                    onClick={() => window.location.href = '/marketplace'}
+                    className="whitespace-nowrap"
+                  >
                     <i className="fas fa-plus mr-2"></i>
-                    安装服务
+                    <span className="hidden sm:inline">安装服务</span>
+                    <span className="sm:hidden">安装</span>
                   </Button>
                 </div>
               </div>
@@ -164,7 +170,7 @@ export default function Home() {
                     </Card>
                   ))}
                 </div>
-              ) : services?.length === 0 ? (
+              ) : (services as any[])?.length === 0 ? (
                 <div className="text-center py-12">
                   <Box className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">暂无已安装服务</h3>
@@ -175,7 +181,7 @@ export default function Home() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {services?.map((service: any) => (
+                  {(services as any[])?.map((service: any) => (
                     <ServiceCard key={service.id} service={service} />
                   ))}
                 </div>

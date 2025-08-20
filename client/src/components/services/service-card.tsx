@@ -129,44 +129,45 @@ export default function ServiceCard({ service }: ServiceCardProps) {
   return (
     <>
       <Card className={`hover:shadow-md transition-shadow ${service.status === 'stopped' ? 'opacity-60' : ''}`}>
-        <CardContent className="p-6">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                <i className={`${getIconClass()} text-xl`}></i>
+        <CardContent className="p-4 sm:p-6">
+          <div className="flex items-start justify-between mb-3 sm:mb-4">
+            <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-100 rounded-lg flex items-center justify-center shrink-0">
+                <i className={`${getIconClass()} text-lg sm:text-xl`}></i>
               </div>
-              <div>
-                <h3 className="font-semibold text-gray-900">{service.displayName}</h3>
-                <p className="text-sm text-gray-500">{service.domain}</p>
+              <div className="min-w-0 flex-1">
+                <h3 className="font-semibold text-gray-900 text-sm sm:text-base truncate">{service.displayName}</h3>
+                <p className="text-xs sm:text-sm text-gray-500 truncate">{service.domain}</p>
               </div>
             </div>
-            <Badge variant={getStatusVariant(service.status)}>
+            <Badge variant={getStatusVariant(service.status)} className="text-xs shrink-0">
               <div className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
                 service.status === 'running' ? 'bg-green-500' : 
                 service.status === 'error' ? 'bg-red-500' : 'bg-gray-500'
               }`}></div>
-              {getStatusText(service.status)}
+              <span className="hidden sm:inline">{getStatusText(service.status)}</span>
+              <span className="sm:hidden">{service.status === 'running' ? '运行' : service.status === 'stopped' ? '停止' : '错误'}</span>
             </Badge>
           </div>
           
-          <p className="text-sm text-gray-600 mb-4">{service.description}</p>
+          <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4 line-clamp-2">{service.description}</p>
           
-          <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+          <div className="hidden sm:flex items-center justify-between text-sm text-gray-500 mb-4">
             <span>端口: <span className="font-medium">{service.port || 'N/A'}</span></span>
             <span>状态: <span className="font-medium">{getStatusText(service.status)}</span></span>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             {service.status === 'stopped' ? (
               <Button 
                 variant="outline" 
                 size="sm" 
                 onClick={handleStart}
                 disabled={updateMutation.isPending}
-                className="flex-1 text-green-600 border-green-200 hover:bg-green-50"
+                className="flex-1 sm:flex-none text-green-600 border-green-200 hover:bg-green-50 text-xs sm:text-sm px-2 sm:px-3"
               >
                 <i className="fas fa-play mr-1"></i>
-                启动
+                <span className="hidden xs:inline">启动</span>
               </Button>
             ) : (
               <Button 
@@ -174,25 +175,27 @@ export default function ServiceCard({ service }: ServiceCardProps) {
                 size="sm" 
                 onClick={handleStop}
                 disabled={updateMutation.isPending}
-                className="flex-1 text-red-600 border-red-200 hover:bg-red-50"
+                className="flex-1 sm:flex-none text-red-600 border-red-200 hover:bg-red-50 text-xs sm:text-sm px-2 sm:px-3"
               >
                 <i className="fas fa-stop mr-1"></i>
-                停止
+                <span className="hidden xs:inline">停止</span>
               </Button>
             )}
             <Button 
               variant="outline" 
               size="sm" 
               onClick={() => setShowConfig(true)}
+              className="text-xs sm:text-sm px-2 sm:px-3"
             >
-              <i className="fas fa-cog mr-1"></i>
-              配置
+              <i className="fas fa-cog sm:mr-1"></i>
+              <span className="hidden sm:inline">配置</span>
             </Button>
             {service.status === 'running' && service.domain && (
               <Button 
                 variant="outline" 
                 size="sm" 
                 onClick={() => window.open(`https://${service.domain}`, '_blank')}
+                className="text-xs sm:text-sm px-2 sm:px-3"
               >
                 <i className="fas fa-external-link-alt"></i>
               </Button>
@@ -202,7 +205,7 @@ export default function ServiceCard({ service }: ServiceCardProps) {
               size="sm" 
               onClick={handleDelete}
               disabled={deleteMutation.isPending}
-              className="text-red-600 border-red-200 hover:bg-red-50"
+              className="text-red-600 border-red-200 hover:bg-red-50 text-xs sm:text-sm px-2 sm:px-3"
             >
               <i className="fas fa-trash"></i>
             </Button>

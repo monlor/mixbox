@@ -78,7 +78,7 @@ export const settings = pgTable("settings", {
   sslEnabled: boolean("ssl_enabled").default(true),
   githubRepo: varchar("github_repo").notNull().default("https://github.com/monlor/mixbox"),
   updateFrequency: varchar("update_frequency").notNull().default("daily"),
-  userId: varchar("user_id").notNull(),
+  userId: varchar("user_id").notNull().unique(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

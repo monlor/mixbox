@@ -109,11 +109,43 @@
     font-family: var(--font-sans);
   }
   
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
   .line-clamp-3 {
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
+  }
+
+  /* Mobile-first touch targets */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Responsive text utilities */
+  .text-responsive {
+    @apply text-sm sm:text-base;
+  }
+  
+  .text-responsive-lg {
+    @apply text-base sm:text-lg;
+  }
+
+  /* Mobile card spacing */
+  .mobile-card {
+    @apply p-4 sm:p-6;
+  }
+
+  /* Responsive gaps */
+  .mobile-gap {
+    @apply gap-2 sm:gap-4;
   }
 }
 
