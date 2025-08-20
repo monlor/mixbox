@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { insertServiceSchema, insertApplicationSchema, insertSettingsSchema } from "@shared/schema";
 import yaml from "js-yaml";
+import { mockApplications, mockDockerService } from './mock-data';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -24,8 +25,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Service routes
   app.get('/api/services', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const services = await storage.getServices(userId);
+      // In development mode, use mock Docker service
+      const services = await mockDockerService.getServices();
       res.json(services);
     } catch (error) {
       console.error("Error fetching services:", error);
@@ -35,7 +36,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/services/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const service = await storage.getService(req.params.id);
+      const services = await mockDockerService.getServices();
+      const service = services.find(s => s.id === req.params.id);
       if (!service) {
         return res.status(404).json({ message: "Service not found" });
       }
@@ -48,9 +50,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/services', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const serviceData = insertServiceSchema.parse({ ...req.body, userId });
-      const service = await storage.createService(serviceData);
+      const serviceData = req.body;
+      const service = await mockDockerService.createService(serviceData);
       res.json(service);
     } catch (error) {
       console.error("Error creating service:", error);
@@ -71,7 +72,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete('/api/services/:id', isAuthenticated, async (req: any, res) => {
     try {
-      await storage.deleteService(req.params.id);
+      await mockDockerService.removeService(req.params.id);
       res.json({ message: "Service deleted successfully" });
     } catch (error) {
       console.error("Error deleting service:", error);
@@ -79,11 +80,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Service control routes
+  app.post('/api/services/:id/start', isAuthenticated, async (req: any, res) => {
+    try {
+      await mockDockerService.startService(req.params.id);
+      res.json({ message: "Service started successfully" });
+    } catch (error) {
+      console.error("Error starting service:", error);
+      res.status(500).json({ message: "Failed to start service" });
+    }
+  });
+
+  app.post('/api/services/:id/stop', isAuthenticated, async (req: any, res) => {
+    try {
+      await mockDockerService.stopService(req.params.id);
+      res.json({ message: "Service stopped successfully" });
+    } catch (error) {
+      console.error("Error stopping service:", error);
+      res.status(500).json({ message: "Failed to stop service" });
+    }
+  });
+
+  app.get('/api/services/:id/logs', isAuthenticated, async (req: any, res) => {
+    try {
+      const logs = await mockDockerService.getServiceLogs(req.params.id);
+      res.json({ logs });
+    } catch (error) {
+      console.error("Error fetching service logs:", error);
+      res.status(500).json({ message: "Failed to fetch service logs" });
+    }
+  });
+
+  app.get('/api/services/:id/stats', isAuthenticated, async (req: any, res) => {
+    try {
+      const stats = await mockDockerService.getServiceStats(req.params.id);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching service stats:", error);
+      res.status(500).json({ message: "Failed to fetch service stats" });
+    }
+  });
+
   // Application/Marketplace routes
   app.get('/api/applications', async (req, res) => {
     try {
-      const applications = await storage.getApplications();
-      res.json(applications);
+      // In development mode, return mock applications
+      res.json(mockApplications);
     } catch (error) {
       console.error("Error fetching applications:", error);
       res.status(500).json({ message: "Failed to fetch applications" });
@@ -92,75 +134,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/applications/sync', isAuthenticated, async (req: any, res) => {
     try {
-      // Fetch applications from GitHub repository
-      const githubUrl = 'https://api.github.com/repos/monlor/mixbox/contents/apps';
-      const response = await fetch(githubUrl);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch from GitHub');
-      }
-
-      const files = await response.json();
-      const applications = [];
-
-      for (const file of files) {
-        if (file.name.endsWith('.yaml') || file.name.endsWith('.yml')) {
-          try {
-            const yamlResponse = await fetch(file.download_url);
-            const yamlContent = await yamlResponse.text();
-            const yamlData = yaml.load(yamlContent) as any;
-
-            const app = await storage.createApplication({
-              name: file.name.replace(/\.(yaml|yml)$/, ''),
-              displayName: yamlData.metadata?.displayName || file.name,
-              description: yamlData.metadata?.description || '',
-              category: yamlData.metadata?.category || 'other',
-              version: yamlData.metadata?.version || 'latest',
-              icon: yamlData.metadata?.icon || '',
-              stars: yamlData.metadata?.stars || '0',
-              githubUrl: file.html_url,
-              yamlUrl: file.download_url,
-              yamlContent: yamlContent,
-            });
-            applications.push(app);
-          } catch (error) {
-            console.error(`Error processing ${file.name}:`, error);
-          }
-        }
-      }
-
-      res.json(applications);
+      // In development mode, simulate sync delay and return mock applications
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      res.json(mockApplications);
     } catch (error) {
       console.error("Error syncing applications:", error);
       res.status(500).json({ message: "Failed to sync applications" });
     }
   });
 
-  app.post('/api/applications/:id/install', isAuthenticated, async (req: any, res) => {
+  app.get('/api/applications/:id/yaml', async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const application = await storage.getApplication(req.params.id);
+      const application = mockApplications.find(app => app.id === req.params.id);
       
       if (!application) {
         return res.status(404).json({ message: "Application not found" });
       }
 
-      // Parse YAML and create service
-      const yamlData = yaml.load(application.yamlContent || '') as any;
-      const { serviceName, domain } = req.body;
+      res.json({ yamlContent: application.yaml });
+    } catch (error) {
+      console.error("Error fetching application YAML:", error);
+      res.status(500).json({ message: "Failed to fetch application YAML" });
+    }
+  });
 
-      const service = await storage.createService({
-        name: serviceName || application.name,
+  app.post('/api/applications/:id/install', isAuthenticated, async (req: any, res) => {
+    try {
+      const application = mockApplications.find(app => app.id === req.params.id);
+      
+      if (!application) {
+        return res.status(404).json({ message: "Application not found" });
+      }
+
+      const { serviceName, domain } = req.body;
+      const finalServiceName = serviceName || application.name;
+      
+      // Create service using mock Docker service
+      const service = await mockDockerService.createService({
+        name: finalServiceName,
         displayName: application.displayName,
         description: application.description,
-        image: yamlData.spec?.image || '',
-        status: 'stopped',
-        port: yamlData.spec?.port || 80,
-        domain: domain || `${serviceName || application.name}.mixbox.com`,
-        config: yamlData.spec?.env || {},
-        yamlConfig: application.yamlContent,
-        dockerCompose: generateDockerCompose(yamlData, serviceName || application.name),
-        userId,
+        port: application.port,
+        domain: domain || `${finalServiceName}.mixbox.com`
       });
 
       res.json(service);
