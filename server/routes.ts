@@ -133,6 +133,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Check if there's a version update available
         let hasUpdate = false;
         if (isInstalled && installedService.version && app.version) {
+          // Compare versions - if installed version is different from app version, there might be an update
           hasUpdate = installedService.version !== app.version;
         }
         
@@ -143,6 +144,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           installedVersion: installedService?.version
         };
       });
+      
+      console.log('Application status check:', applicationsWithStatus.map(app => ({
+        name: app.name,
+        isInstalled: app.isInstalled,
+        hasUpdate: app.hasUpdate,
+        appVersion: app.version,
+        installedVersion: app.installedVersion
+      })));
       
       res.json(applicationsWithStatus);
     } catch (error) {

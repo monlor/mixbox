@@ -97,26 +97,43 @@ export class MockDockerService {
   }
 
   async createService(config: any): Promise<any> {
-    const serviceId = `service-${Date.now()}`;
-    const service = {
-      id: serviceId,
-      name: config.name,
-      displayName: config.displayName,
-      description: config.description,
-      status: 'stopped',
-      port: config.port,
-      domain: `${config.name}.mixbox.com`,
-      version: config.version || 'latest',
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
+    // Check if service with same name already exists (for updates)
+    const existingService = Array.from(this.services.values())
+      .find(service => service.name === config.name);
     
-    this.services.set(serviceId, service);
-    
-    // Simulate Docker container creation delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    return service;
+    if (existingService) {
+      // Update existing service (this is an update, not a new installation)
+      existingService.version = config.version || 'latest';
+      existingService.updatedAt = new Date();
+      existingService.description = config.description;
+      
+      // Simulate update delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      return existingService;
+    } else {
+      // Create new service
+      const serviceId = `service-${Date.now()}`;
+      const service = {
+        id: serviceId,
+        name: config.name,
+        displayName: config.displayName,
+        description: config.description,
+        status: 'stopped',
+        port: config.port,
+        domain: config.domain || `${config.name}.mixbox.com`,
+        version: config.version || 'latest',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      
+      this.services.set(serviceId, service);
+      
+      // Simulate Docker container creation delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      return service;
+    }
   }
 
   async startService(serviceId: string): Promise<void> {
