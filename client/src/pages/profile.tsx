@@ -43,64 +43,66 @@ export default function Profile() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar />
+      <div className="hidden md:block">
+        <Sidebar />
+      </div>
       
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header title="个人中心" />
         
-        <main className="flex-1 overflow-y-auto p-6">
-          <div className="max-w-2xl">
-            <h2 className="text-xl font-bold text-gray-900 mb-6">个人中心</h2>
+        <main className="flex-1 overflow-y-auto p-4 md:p-6">
+          <div className="max-w-2xl w-full">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6">个人中心</h2>
 
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {/* Profile Info */}
               <Card>
-                <CardHeader>
-                  <CardTitle>账户信息</CardTitle>
+                <CardHeader className="pb-3 sm:pb-6">
+                  <CardTitle className="text-base sm:text-lg">账户信息</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center space-x-4">
-                    <Avatar className="w-16 h-16">
-                      <AvatarImage src={user?.profileImageUrl} />
+                <CardContent className="space-y-3 sm:space-y-4 pt-0 sm:pt-0">
+                  <div className="flex items-center space-x-3 sm:space-x-4">
+                    <Avatar className="w-12 h-12 sm:w-16 sm:h-16">
+                      <AvatarImage src={(user as any)?.profileImageUrl} />
                       <AvatarFallback>
-                        <i className="fas fa-user text-2xl text-gray-600"></i>
+                        <i className="fas fa-user text-lg sm:text-2xl text-gray-600"></i>
                       </AvatarFallback>
                     </Avatar>
-                    <div>
-                      <h4 className="font-medium text-gray-900">
-                        {user?.firstName && user?.lastName 
-                          ? `${user.firstName} ${user.lastName}` 
-                          : user?.email || 'User'}
+                    <div className="min-w-0 flex-1">
+                      <h4 className="font-medium text-gray-900 text-sm sm:text-base truncate">
+                        {(user as any)?.firstName && (user as any)?.lastName 
+                          ? `${(user as any).firstName} ${(user as any).lastName}` 
+                          : (user as any)?.email || 'User'}
                       </h4>
-                      <p className="text-sm text-gray-500">{user?.email}</p>
+                      <p className="text-xs sm:text-sm text-gray-500 truncate">{(user as any)?.email}</p>
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div>
-                      <Label htmlFor="firstName">名字</Label>
+                      <Label htmlFor="firstName" className="text-sm">名字</Label>
                       <Input
                         id="firstName"
-                        value={user?.firstName || ''}
+                        value={(user as any)?.firstName || ''}
                         readOnly
-                        className="mt-1"
+                        className="mt-1 text-sm"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="lastName">姓氏</Label>
+                      <Label htmlFor="lastName" className="text-sm">姓氏</Label>
                       <Input
                         id="lastName"
-                        value={user?.lastName || ''}
+                        value={(user as any)?.lastName || ''}
                         readOnly
-                        className="mt-1"
+                        className="mt-1 text-sm"
                       />
                     </div>
-                    <div className="md:col-span-2">
-                      <Label htmlFor="email">邮箱</Label>
+                    <div className="sm:col-span-2">
+                      <Label htmlFor="email" className="text-sm">邮箱</Label>
                       <Input
                         id="email"
-                        value={user?.email || ''}
+                        value={(user as any)?.email || ''}
                         readOnly
-                        className="mt-1"
+                        className="mt-1 text-sm"
                       />
                     </div>
                   </div>
@@ -109,15 +111,15 @@ export default function Profile() {
 
               {/* Account Actions */}
               <Card>
-                <CardHeader>
-                  <CardTitle>账户操作</CardTitle>
+                <CardHeader className="pb-3 sm:pb-6">
+                  <CardTitle className="text-base sm:text-lg">账户操作</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <p className="text-sm text-gray-600">
+                <CardContent className="pt-0 sm:pt-0">
+                  <div className="space-y-3 sm:space-y-4">
+                    <p className="text-xs sm:text-sm text-gray-600">
                       您的账户通过 Replit 进行管理。要修改个人信息，请访问您的 Replit 个人资料设置。
                     </p>
-                    <Button onClick={handleLogout} variant="outline">
+                    <Button onClick={handleLogout} variant="outline" className="w-full sm:w-auto">
                       <i className="fas fa-sign-out-alt mr-2"></i>
                       退出登录
                     </Button>
@@ -127,25 +129,25 @@ export default function Profile() {
 
               {/* System Info */}
               <Card>
-                <CardHeader>
-                  <CardTitle>系统信息</CardTitle>
+                <CardHeader className="pb-3 sm:pb-6">
+                  <CardTitle className="text-base sm:text-lg">系统信息</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">MixBox 版本</span>
-                      <span className="text-sm font-medium text-gray-900">v1.0.0</span>
+                <CardContent className="pt-0 sm:pt-0">
+                  <div className="space-y-2 sm:space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                      <span className="text-xs sm:text-sm text-gray-600">MixBox 版本</span>
+                      <span className="text-xs sm:text-sm font-medium text-gray-900">v1.0.0</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">用户 ID</span>
-                      <span className="text-sm font-medium text-gray-900 font-mono">
-                        {user?.id || 'N/A'}
+                    <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                      <span className="text-xs sm:text-sm text-gray-600">用户 ID</span>
+                      <span className="text-xs sm:text-sm font-medium text-gray-900 font-mono break-all">
+                        {(user as any)?.id || 'N/A'}
                       </span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">注册时间</span>
-                      <span className="text-sm font-medium text-gray-900">
-                        {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('zh-CN') : 'N/A'}
+                    <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                      <span className="text-xs sm:text-sm text-gray-600">注册时间</span>
+                      <span className="text-xs sm:text-sm font-medium text-gray-900">
+                        {(user as any)?.createdAt ? new Date((user as any).createdAt).toLocaleDateString('zh-CN') : 'N/A'}
                       </span>
                     </div>
                   </div>

@@ -133,24 +133,26 @@ export default function Settings() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar />
+      <div className="hidden md:block">
+        <Sidebar />
+      </div>
       
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header title="插件设置" />
         
-        <main className="flex-1 overflow-y-auto p-6">
-          <div className="max-w-4xl">
-            <h2 className="text-xl font-bold text-gray-900 mb-6">插件设置</h2>
+        <main className="flex-1 overflow-y-auto p-4 md:p-6">
+          <div className="max-w-4xl w-full">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6">插件设置</h2>
 
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
                 {/* Docker Settings */}
                 <Card>
-                  <CardHeader>
-                    <CardTitle>Docker 配置</CardTitle>
+                  <CardHeader className="pb-3 sm:pb-6">
+                    <CardTitle className="text-base sm:text-lg">Docker 配置</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <CardContent className="space-y-3 sm:space-y-4 pt-0 sm:pt-0">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                       <FormField
                         control={form.control}
                         name="dockerSocket"
@@ -177,10 +179,10 @@ export default function Settings() {
 
                 {/* Domain Settings */}
                 <Card>
-                  <CardHeader>
-                    <CardTitle>域名配置</CardTitle>
+                  <CardHeader className="pb-3 sm:pb-6">
+                    <CardTitle className="text-base sm:text-lg">域名配置</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
+                  <CardContent className="space-y-3 sm:space-y-4 pt-0 sm:pt-0">
                     <FormField
                       control={form.control}
                       name="defaultDomain"
@@ -217,10 +219,10 @@ export default function Settings() {
 
                 {/* Repository Settings */}
                 <Card>
-                  <CardHeader>
-                    <CardTitle>仓库配置</CardTitle>
+                  <CardHeader className="pb-3 sm:pb-6">
+                    <CardTitle className="text-base sm:text-lg">仓库配置</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
+                  <CardContent className="space-y-3 sm:space-y-4 pt-0 sm:pt-0">
                     <FormField
                       control={form.control}
                       name="githubRepo"
@@ -261,11 +263,11 @@ export default function Settings() {
                 </Card>
 
                 {/* Save Button */}
-                <div className="flex justify-end">
+                <div className="flex justify-end pt-2">
                   <Button 
                     type="submit" 
                     disabled={updateMutation.isPending}
-                    className="px-6"
+                    className="w-full sm:w-auto px-6"
                   >
                     <i className="fas fa-save mr-2"></i>
                     {updateMutation.isPending ? '保存中...' : '保存设置'}
