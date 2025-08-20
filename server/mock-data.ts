@@ -30,11 +30,12 @@ function loadApplicationsFromYaml() {
             category: appData.metadata.category || 'other',
             version: appData.metadata.version || 'latest',
             stars: appData.metadata.stars || 0,
-            port: appData.spec?.port || 80,
+            port: appData.metadata.mainPort || 80,
             icon: appData.metadata.icon || '',
             author: appData.metadata.author || '',
             website: appData.metadata.website || '',
             isInstalled: false,
+            hasUpdate: false,
             yaml: yamlContent
           });
         }
@@ -66,6 +67,7 @@ export const mockServices = [
     status: "running",
     port: 1200,
     domain: "rsshub.mixbox.com",
+    version: "2024.01.10", // Older version to test update detection
     createdAt: new Date('2024-01-15'),
     updatedAt: new Date()
   },
@@ -77,6 +79,7 @@ export const mockServices = [
     status: "stopped",
     port: 3000,
     domain: "grafana.mixbox.com",
+    version: "10.2.3", // Same version, no update
     createdAt: new Date('2024-01-10'),
     updatedAt: new Date()
   }
@@ -103,6 +106,7 @@ export class MockDockerService {
       status: 'stopped',
       port: config.port,
       domain: `${config.name}.mixbox.com`,
+      version: config.version || 'latest',
       createdAt: new Date(),
       updatedAt: new Date()
     };

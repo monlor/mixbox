@@ -8,10 +8,15 @@ import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
 import AppCard from "@/components/marketplace/app-card";
 import InstallModal from "@/components/marketplace/install-modal";
+import { AdvancedConfig } from "@/components/advanced-config";
+import { EnhancedInstallModal } from "@/components/enhanced-install-modal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Download, RefreshCw, CheckCircle, AlertCircle } from "lucide-react";
 
 const categories = [
   { id: 'all', name: '全部' },
@@ -26,7 +31,7 @@ export default function Marketplace() {
   const { isAuthenticated, isLoading } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedApp, setSelectedApp] = useState(null);
+  const [selectedApp, setSelectedApp] = useState<any>(null);
 
   // Redirect to home if not authenticated
   useEffect(() => {
@@ -201,23 +206,125 @@ export default function Marketplace() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
               {filteredApps.map((app: any) => (
-                <AppCard 
-                  key={app.id} 
-                  app={app} 
-                  onInstall={(app) => setSelectedApp(app)} 
-                />
+                <Card key={app.id} className="hover:shadow-lg transition-shadow duration-200">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center space-x-3">
+                        {app.icon ? (
+                          <img 
+                            src={app.icon} 
+                            alt={app.displayName}
+                            className="w-10 h-10 rounded-lg object-cover"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.src = '/placeholder-icon.svg';
+                            }}
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-lg bg-gray-200 flex items-center justify-center">
+                            <i className="fas fa-cube text-gray-500"></i>
+                          </div>
+                        )}
+                        <div>
+                          <h3 className="font-semibold text-gray-900">{app.displayName}</h3>
+                          <p className="text-xs text-gray-500">{app.author}</p>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        {app.isInstalled && (
+                          <Badge variant="default" className="text-xs">
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            已安装
+                          </Badge>
+                        )}
+                        {app.hasUpdate && (
+                          <Badge variant="destructive" className="text-xs">
+                            <AlertCircle className="w-3 h-3 mr-1" />
+                            有更新
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <p className="text-sm text-gray-600 mb-3 line-clamp-2">{app.description}</p>
+                    
+                    <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
+                      <span>⭐ {app.stars?.toLocaleString() || 0}</span>
+                      <span>端口: {app.port}</span>
+                      <span>v{app.version}</span>
+                    </div>
+                    
+                    {app.isInstalled && app.hasUpdate ? (
+                      <Button 
+                        className="w-full" 
+                        onClick={() => setSelectedApp(app)}
+                        variant="outline"
+                      >
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        更新
+                      </Button>
+                    ) : app.isInstalled ? (
+                      <Button className="w-full" disabled variant="secondary">
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        已安装
+                      </Button>
+                    ) : (
+                      <Button 
+                        className="w-full" 
+                        onClick={() => setSelectedApp(app)}
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        安装
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
               ))}
             </div>
           )}
         </main>
       </div>
 
-      {/* Install Modal */}
+      {/* Install/Update Modal */}
       {selectedApp && (
-        <InstallModal
-          app={selectedApp}
-          onClose={() => setSelectedApp(null)}
-        />
+        <Dialog open={!!selectedApp} onOpenChange={() => setSelectedApp(null)}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                {selectedApp.icon && (
+                  <img 
+                    src={selectedApp.icon} 
+                    alt={selectedApp.displayName}
+                    className="w-8 h-8 rounded object-cover"
+                  />
+                )}
+                {selectedApp.isInstalled && selectedApp.hasUpdate ? '更新' : '安装'} {selectedApp.displayName}
+              </DialogTitle>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div>
+                  <h4 className="font-medium">{selectedApp.displayName}</h4>
+                  <p className="text-sm text-gray-600">{selectedApp.description}</p>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm font-medium">v{selectedApp.version}</div>
+                  {selectedApp.isInstalled && selectedApp.installedVersion && (
+                    <div className="text-xs text-gray-500">
+                      当前: v{selectedApp.installedVersion}
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <EnhancedInstallModal 
+                app={selectedApp}
+                onClose={() => setSelectedApp(null)}
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

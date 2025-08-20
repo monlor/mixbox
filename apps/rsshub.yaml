@@ -4,28 +4,12 @@ metadata:
   displayName: RSSHub
   description: 🍰 Everything is RSSible - RSS 聚合器，支持各种奇怪的格式
   category: network-tools
-  version: latest
+  version: "2024.01.15"
   stars: 28500
   icon: https://docs.rsshub.app/img/logo.png
   author: DIYgod
   website: https://docs.rsshub.app/
-
-spec:
-  image: diygod/rsshub:latest
-  port: 1200
-  env:
-    NODE_ENV: production
-    CACHE_TYPE: redis
-    REDIS_URL: redis://redis:6379/
-  volumes:
-    - rsshub_data:/app/data
-  depends_on:
-    - redis
-  healthcheck:
-    test: ["CMD", "curl", "-f", "http://localhost:1200/"]
-    interval: 30s
-    timeout: 10s
-    retries: 3
+  mainPort: 1200
 
 services:
   rsshub:
@@ -40,10 +24,13 @@ services:
     depends_on:
       - redis
     restart: unless-stopped
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.rsshub.rule=Host(`rsshub.{DEFAULT_DOMAIN}`)"
-      - "traefik.http.services.rsshub.loadbalancer.server.port=1200"
+    networks:
+      - mixbox
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:1200/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   redis:
     image: redis:alpine
@@ -51,7 +38,12 @@ services:
     restart: unless-stopped
     volumes:
       - redis_data:/data
+    networks:
+      - mixbox
+
+networks:
+  mixbox:
+    external: true
 
 volumes:
-  rsshub_data:
   redis_data:

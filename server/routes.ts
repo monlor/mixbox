@@ -122,10 +122,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Application/Marketplace routes
-  app.get('/api/applications', async (req, res) => {
+  app.get('/api/applications', isAuthenticated, async (req: any, res) => {
     try {
-      // In development mode, return mock applications
-      res.json(mockApplications);
+      // Get installed services to check status and version
+      const installedServices = await mockDockerService.getServices();
+      const applicationsWithStatus = mockApplications.map(app => {
+        const installedService = installedServices.find(service => service.name === app.name);
+        const isInstalled = !!installedService;
+        
+        // Check if there's a version update available
+        let hasUpdate = false;
+        if (isInstalled && installedService.version && app.version) {
+          hasUpdate = installedService.version !== app.version;
+        }
+        
+        return {
+          ...app,
+          isInstalled,
+          hasUpdate,
+          installedVersion: installedService?.version
+        };
+      });
+      
+      res.json(applicationsWithStatus);
     } catch (error) {
       console.error("Error fetching applications:", error);
       res.status(500).json({ message: "Failed to fetch applications" });
@@ -162,11 +181,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   category: appData.metadata.category,
                   version: appData.metadata.version,
                   stars: appData.metadata.stars,
-                  port: appData.spec?.port,
+                  port: appData.metadata.mainPort,
                   icon: appData.metadata.icon,
                   author: appData.metadata.author,
                   website: appData.metadata.website,
                   isInstalled: false,
+                  hasUpdate: false,
                   yaml: yamlContent
                 });
               }
@@ -204,24 +224,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/applications/:id/install', isAuthenticated, async (req: any, res) => {
     try {
-      const application = mockApplications.find(app => app.id === req.params.id);
+      const applicationId = req.params.id;
+      const { customEnvVars, serviceName, domain } = req.body;
+      const application = mockApplications.find(app => app.id === applicationId);
       
       if (!application) {
         return res.status(404).json({ message: "Application not found" });
       }
 
-      const { serviceName, domain } = req.body;
+      // Parse YAML and merge custom environment variables
+      let yamlContent = application.yaml;
+      if (customEnvVars && Object.keys(customEnvVars).length > 0) {
+        try {
+          const yamlData = yaml.load(application.yaml) as any;
+          
+          // Update environment variables for all services
+          if (yamlData.services) {
+            Object.keys(yamlData.services).forEach(serviceName => {
+              if (yamlData.services[serviceName].environment) {
+                // Merge with custom env vars
+                yamlData.services[serviceName].environment = {
+                  ...yamlData.services[serviceName].environment,
+                  ...customEnvVars
+                };
+              } else {
+                yamlData.services[serviceName].environment = customEnvVars;
+              }
+            });
+          }
+          
+          // Ensure all services use mixbox network
+          if (yamlData.services) {
+            Object.keys(yamlData.services).forEach(serviceName => {
+              yamlData.services[serviceName].networks = ['mixbox'];
+            });
+          }
+          
+          // Add external mixbox network
+          yamlData.networks = {
+            ...(yamlData.networks || {}),
+            mixbox: { external: true }
+          };
+          
+          yamlContent = yaml.dump(yamlData);
+        } catch (error) {
+          console.error('Error processing YAML:', error);
+        }
+      }
+
       const finalServiceName = serviceName || application.name;
       
-      // Create service using mock Docker service
-      const service = await mockDockerService.createService({
+      // Create service from application with updated configuration
+      const serviceConfig = {
         name: finalServiceName,
         displayName: application.displayName,
         description: application.description,
         port: application.port,
-        domain: domain || `${finalServiceName}.mixbox.com`
-      });
+        domain: domain || `${finalServiceName}.mixbox.com`,
+        version: application.version,
+        yaml: yamlContent,
+        customEnvVars
+      };
 
+      const service = await mockDockerService.createService(serviceConfig);
       res.json(service);
     } catch (error) {
       console.error("Error installing application:", error);

@@ -44,6 +44,7 @@ export const services = pgTable("services", {
   status: varchar("status").notNull().default("stopped"), // running, stopped, error
   port: integer("port"),
   domain: varchar("domain"),
+  version: varchar("version"),
   config: jsonb("config"), // Environment variables, volumes, etc.
   yamlConfig: text("yaml_config"), // Original YAML configuration
   dockerCompose: text("docker_compose"), // Generated docker-compose.yml
@@ -61,11 +62,14 @@ export const applications = pgTable("applications", {
   category: varchar("category").notNull(),
   version: varchar("version").notNull(),
   icon: varchar("icon"),
-  stars: varchar("stars"),
-  githubUrl: varchar("github_url"),
-  yamlUrl: varchar("yaml_url"),
+  author: varchar("author"),
+  website: varchar("website"),
+  stars: integer("stars").default(0),
+  port: integer("port"),
   yamlContent: text("yaml_content"),
   isInstalled: boolean("is_installed").default(false),
+  hasUpdate: boolean("has_update").default(false),
+  installedVersion: varchar("installed_version"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
