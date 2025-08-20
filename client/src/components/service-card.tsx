@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { DeleteServiceDialog } from "@/components/delete-service-dialog";
 import { 
   Play, 
   Square, 
@@ -30,6 +31,7 @@ interface ServiceCardProps {
 export function ServiceCard({ service }: ServiceCardProps) {
   const { toast } = useToast();
   const [showLogs, setShowLogs] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const startMutation = useMutation({
     mutationFn: async () => {
@@ -59,19 +61,7 @@ export function ServiceCard({ service }: ServiceCardProps) {
     onError: handleError,
   });
 
-  const removeMutation = useMutation({
-    mutationFn: async () => {
-      return await apiRequest("DELETE", `/api/services/${service.id}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/services"] });
-      toast({
-        title: "服务已删除",
-        description: `${service.displayName} 已从系统中移除`,
-      });
-    },
-    onError: handleError,
-  });
+  // Remove the removeMutation from here as it's now handled in DeleteServiceDialog
 
   function handleError(error: Error) {
     if (isUnauthorizedError(error)) {
@@ -131,7 +121,7 @@ export function ServiceCard({ service }: ServiceCardProps) {
     }
   };
 
-  const isLoading = startMutation.isPending || stopMutation.isPending || removeMutation.isPending;
+  const isLoading = startMutation.isPending || stopMutation.isPending;
 
   return (
     <>
@@ -231,15 +221,11 @@ export function ServiceCard({ service }: ServiceCardProps) {
             <Button
               size="sm"
               variant="outline"
-              onClick={() => removeMutation.mutate()}
+              onClick={() => setShowDeleteDialog(true)}
               disabled={isLoading}
               className="text-red-600 border-red-300 hover:bg-red-50"
             >
-              {removeMutation.isPending ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Trash2 className="w-4 h-4" />
-              )}
+              <Trash2 className="w-4 h-4" />
             </Button>
           </div>
         </CardContent>
@@ -270,6 +256,13 @@ export function ServiceCard({ service }: ServiceCardProps) {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteServiceDialog
+        service={service}
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+      />
     </>
   );
 }

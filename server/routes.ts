@@ -326,8 +326,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete('/api/services/:id', isAuthenticated, async (req: any, res) => {
     try {
-      await mockDockerService.removeService(req.params.id);
-      res.json({ message: "Service removed successfully" });
+      const { deleteData } = req.body;
+      await mockDockerService.removeService(req.params.id, deleteData);
+      res.json({ 
+        message: "Service removed successfully",
+        dataDeleted: deleteData 
+      });
     } catch (error) {
       console.error("Error removing service:", error);
       res.status(500).json({ message: "Failed to remove service" });

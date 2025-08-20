@@ -164,9 +164,18 @@ export class MockDockerService {
     this.services.set(serviceId, service);
   }
 
-  async removeService(serviceId: string): Promise<void> {
-    // Simulate Docker removal delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+  async removeService(serviceId: string, deleteData: boolean = false): Promise<void> {
+    const service = this.services.get(serviceId);
+    if (!service) {
+      throw new Error('Service not found');
+    }
+
+    // Simulate Docker removal delay based on whether data is being deleted
+    const delay = deleteData ? 3000 : 1500; // Longer delay if deleting data
+    await new Promise(resolve => setTimeout(resolve, delay));
+    
+    // Log what's being removed for debugging
+    console.log(`Removing service ${service.displayName} (deleteData: ${deleteData})`);
     
     this.services.delete(serviceId);
   }
