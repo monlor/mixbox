@@ -49,12 +49,14 @@ Preferred communication style: Simple, everyday language.
 - **Domain Management**: Automatic subdomain assignment with Traefik integration for reverse proxy
 - **Mock Operations**: Full Docker service simulation with realistic delays and status management for development
 
-## Application Marketplace
-- **Source**: Local YAML files in `/apps` directory, with GitHub repository integration for remote fetching
+## Application Marketplace Architecture
+- **Unified Data Manager**: AppDataManager interface provides consistent API for both local and remote data sources
+- **Local Mode** (USE_MOCK=true): Direct file system reading from `/apps` directory for development
+- **Remote Mode** (USE_MOCK=false): GitHub API integration for fetching applications from remote repository
+- **Caching System**: 5-minute cache for remote data to reduce API calls and improve performance
 - **Discovery**: Category-based filtering and search functionality with real application metadata
-- **Installation**: One-click deployment from marketplace applications to running services
-- **Configuration**: Complete YAML-based application definitions including Docker Compose specifications
-- **Development Mode**: Direct local file system reading for rapid development and testing
+- **Installation**: One-click deployment from marketplace applications to running Docker services
+- **Configuration**: Complete YAML-based application definitions with environment variable customization
 
 # External Dependencies
 

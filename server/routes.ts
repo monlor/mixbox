@@ -4,8 +4,8 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { insertServiceSchema, insertApplicationSchema, insertSettingsSchema } from "@shared/schema";
 import yaml from "js-yaml";
-import { mockApplications, loadApplicationsFromYAML } from './mock-data';
 import { dockerOperations } from "./docker-operations";
+import { appDataManager } from "./app-data-manager";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -118,7 +118,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Applications/Marketplace routes
   app.get('/api/applications', isAuthenticated, async (req: any, res) => {
     try {
-      const applications = await loadApplicationsFromYAML();
+      const applications = await appDataManager.loadApplications();
       
       // Add installation status to each application
       const services = await dockerOperations.listServices();
@@ -128,8 +128,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ...app,
           isInstalled: !!installedService,
           hasUpdate: installedService ? 
-            app.metadata?.version !== installedService.version : false,
-          appVersion: app.metadata?.version,
+            app.version !== installedService.version : false,
+          appVersion: app.version,
           installedVersion: installedService?.version
         };
       });
@@ -151,8 +151,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/applications/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const applications = await loadApplicationsFromYAML();
-      const application = applications.find((app: any) => app.id === req.params.id);
+      const application = await appDataManager.getApplication(req.params.id);
       
       if (!application) {
         return res.status(404).json({ message: "Application not found" });
@@ -167,14 +166,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/applications/:id/yaml', isAuthenticated, async (req: any, res) => {
     try {
-      const applications = await loadApplicationsFromYAML();
-      const application = applications.find((app: any) => app.id === req.params.id);
+      const yamlContent = await appDataManager.getApplicationYaml(req.params.id);
       
-      if (!application) {
-        return res.status(404).json({ message: "Application not found" });
+      if (!yamlContent) {
+        return res.status(404).json({ message: "Application YAML not found" });
       }
 
-      res.json({ yamlContent: application.yaml });
+      res.json({ yamlContent });
     } catch (error) {
       console.error("Error fetching application YAML:", error);
       res.status(500).json({ message: "Failed to fetch application YAML" });
@@ -185,8 +183,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const applicationId = req.params.id;
       const { customEnvVars, serviceName, domain } = req.body;
-      const applications = await loadApplicationsFromYAML();
-      const application = applications.find((app: any) => app.id === applicationId);
+      const application = await appDataManager.getApplication(applicationId);
       
       if (!application) {
         return res.status(404).json({ message: "Application not found" });
