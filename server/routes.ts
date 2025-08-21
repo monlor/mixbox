@@ -199,8 +199,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Application not found" });
       }
 
+      // Get YAML content
+      const yamlContent = await appDataManager.getApplicationYaml(applicationId);
+      if (!yamlContent) {
+        return res.status(404).json({ message: "Application configuration not found" });
+      }
+
       // Parse YAML and merge custom environment variables
-      let config = yaml.load(application.yaml) as any;
+      let config = yaml.load(yamlContent) as any;
       if (customEnvVars && Object.keys(customEnvVars).length > 0) {
         try {
           // Update environment variables for all services

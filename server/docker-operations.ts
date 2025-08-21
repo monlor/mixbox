@@ -188,16 +188,30 @@ class MockDockerOperations implements DockerOperations {
     // Simulate deployment time
     await new Promise(resolve => setTimeout(resolve, 3000));
 
+    console.log('Deploying service with config:', JSON.stringify(config, null, 2));
+
+    // Ensure config has required structure
+    if (!config.metadata || !config.metadata.name) {
+      throw new Error('Invalid configuration: missing metadata.name');
+    }
+
+    const mainServiceName = config.metadata.name;
+    const mainService = config.services?.[mainServiceName];
+    
+    if (!mainService) {
+      throw new Error(`Main service '${mainServiceName}' not found in services configuration`);
+    }
+
     const serviceId = `service-${Date.now()}`;
     const service: DockerService = {
       id: serviceId,
       name: config.metadata.name,
-      displayName: config.metadata.displayName,
+      displayName: config.metadata.displayName || config.metadata.name,
       status: 'running',
-      ports: config.spec.ports || [],
+      ports: mainService.ports || [],
       domain: `${config.metadata.name}.mixbox.local`,
-      image: config.services?.[config.metadata.name]?.image || 'unknown',
-      version: 'latest',
+      image: mainService.image || 'unknown',
+      version: config.metadata.version || 'latest',
       uptime: '刚刚部署',
       cpuUsage: Math.random() * 20,
       memoryUsage: Math.random() * 200 + 50,
