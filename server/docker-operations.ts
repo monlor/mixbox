@@ -156,6 +156,15 @@ class MockDockerOperations implements DockerOperations {
     await new Promise(resolve => setTimeout(resolve, delay));
 
     console.log(`Mock: Removing service ${service.displayName} (deleteData: ${deleteData})`);
+    
+    // 从代理管理器中移除服务
+    try {
+      const { proxyManager } = await import('./proxy-server');
+      proxyManager.removeServiceProxy(service.name);
+    } catch (error) {
+      console.warn('Failed to remove service from proxy manager:', error);
+    }
+
     this.services.delete(serviceId);
   }
 
@@ -202,6 +211,10 @@ class MockDockerOperations implements DockerOperations {
       throw new Error(`Main service '${mainServiceName}' not found in services configuration`);
     }
 
+    // 提取主机端口
+    const mainPort = this.extractHostPort(mainService.ports || []);
+    const domain = `${config.metadata.name}.mixbox.local`;
+
     const serviceId = `service-${Date.now()}`;
     const service: DockerService = {
       id: serviceId,
@@ -209,7 +222,7 @@ class MockDockerOperations implements DockerOperations {
       displayName: config.metadata.displayName || config.metadata.name,
       status: 'running',
       ports: mainService.ports || [],
-      domain: `${config.metadata.name}.mixbox.local`,
+      domain: domain,
       image: mainService.image || 'unknown',
       version: config.metadata.version || 'latest',
       uptime: '刚刚部署',
@@ -220,7 +233,33 @@ class MockDockerOperations implements DockerOperations {
     };
 
     this.services.set(serviceId, service);
+
+    // 通知代理管理器添加新服务
+    if (mainPort) {
+      try {
+        // 动态导入避免循环依赖
+        const { proxyManager } = await import('./proxy-server');
+        await proxyManager.addServiceProxy(config.metadata.name, mainPort);
+      } catch (error) {
+        console.warn('Failed to register service with proxy manager:', error);
+      }
+    }
+
     return service;
+  }
+
+  private extractHostPort(ports: string[]): number | null {
+    if (!ports || ports.length === 0) return null;
+    
+    // 查找主机端口映射，格式如 "8080:80"
+    for (const portMapping of ports) {
+      const match = portMapping.match(/^(\d+):/);
+      if (match) {
+        return parseInt(match[1], 10);
+      }
+    }
+    
+    return null;
   }
 
   async checkServiceStatus(serviceId: string): Promise<'running' | 'stopped'> {

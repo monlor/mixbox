@@ -6,6 +6,7 @@ import { insertServiceSchema, insertApplicationSchema, insertSettingsSchema } fr
 import yaml from "js-yaml";
 import { dockerOperations } from "./docker-operations";
 import { appDataManager } from "./app-data-manager";
+import { proxyManager } from "./proxy-server";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -267,10 +268,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const updates = insertSettingsSchema.omit({ userId: true }).parse(req.body);
       const settings = await storage.upsertSettings({ ...updates, userId });
+      
+      // 更新代理管理器的默认域名
+      if (updates.defaultDomain) {
+        proxyManager.setDefaultDomain(updates.defaultDomain);
+        await proxyManager.updateProxyRules();
+      }
+      
       res.json(settings);
     } catch (error) {
       console.error("Error updating settings:", error);
       res.status(400).json({ message: "Failed to update settings" });
+    }
+  });
+
+  // 代理管理路由
+  app.get('/api/proxy/rules', isAuthenticated, async (req: any, res) => {
+    try {
+      const rules = proxyManager.getAllRules();
+      res.json(rules);
+    } catch (error) {
+      console.error("Error fetching proxy rules:", error);
+      res.status(500).json({ message: "Failed to fetch proxy rules" });
+    }
+  });
+
+  app.post('/api/proxy/refresh', isAuthenticated, async (req: any, res) => {
+    try {
+      await proxyManager.updateProxyRules();
+      const rules = proxyManager.getAllRules();
+      res.json({ message: "Proxy rules refreshed", rules });
+    } catch (error) {
+      console.error("Error refreshing proxy rules:", error);
+      res.status(500).json({ message: "Failed to refresh proxy rules" });
     }
   });
 

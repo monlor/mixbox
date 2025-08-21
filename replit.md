@@ -46,7 +46,8 @@ Preferred communication style: Simple, everyday language.
 - **Configuration Format**: Standardized YAML-based service definitions with metadata, spec, and services sections
 - **Docker Integration**: Complete Docker Compose generation from YAML configurations with mock service simulation
 - **Service Lifecycle**: Create, update, start, stop, and delete operations for containerized services
-- **Domain Management**: Automatic subdomain assignment with Traefik integration for reverse proxy
+- **Built-in Proxy Server**: Native HTTP reverse proxy with automatic subdomain assignment for all services
+- **Domain Management**: Automatic domain allocation using configurable default domain (e.g., service.mixbox.com)
 - **Mock Operations**: Full Docker service simulation with realistic delays and status management for development
 
 ## Application Marketplace Architecture

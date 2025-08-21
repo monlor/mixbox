@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { RefreshCw, Globe, ExternalLink } from "lucide-react";
 
 const settingsSchema = z.object({
   dockerSocket: z.string().min(1, "Docker Socket 路径不能为空"),
@@ -61,6 +62,33 @@ export default function Settings() {
           return;
         }
       },
+    },
+  });
+
+  // 查询代理规则
+  const { data: proxyRules, isLoading: proxyLoading } = useQuery({
+    queryKey: ["/api/proxy/rules"],
+    retry: false,
+  });
+
+  // 刷新代理规则的变更
+  const refreshProxyMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("POST", "/api/proxy/refresh");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/proxy/rules"] });
+      toast({
+        title: "代理规则已刷新",
+        description: "代理状态已同步更新",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "刷新失败",
+        description: "无法刷新代理规则，请重试",
+        variant: "destructive",
+      });
     },
   });
 
@@ -259,6 +287,103 @@ export default function Settings() {
                         </FormItem>
                       )}
                     />
+                  </CardContent>
+                </Card>
+
+                {/* Proxy Management */}
+                <Card>
+                  <CardHeader className="pb-3 sm:pb-6">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                        <Globe className="h-5 w-5" />
+                        内置代理管理
+                      </CardTitle>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => refreshProxyMutation.mutate()}
+                        disabled={refreshProxyMutation.isPending}
+                        className="flex items-center gap-1"
+                      >
+                        <RefreshCw className={`h-4 w-4 ${refreshProxyMutation.isPending ? 'animate-spin' : ''}`} />
+                        刷新
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                        <div>
+                          <Label className="font-medium text-gray-700">代理状态</Label>
+                          <div className="flex items-center space-x-2 pt-1">
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <span className="text-gray-600">运行中</span>
+                          </div>
+                        </div>
+                        <div>
+                          <Label className="font-medium text-gray-700">活跃规则</Label>
+                          <p className="text-gray-600 pt-1">{proxyRules?.length || 0} 个</p>
+                        </div>
+                        <div>
+                          <Label className="font-medium text-gray-700">默认域名</Label>
+                          <p className="text-gray-600 pt-1">{settings?.defaultDomain || 'mixbox.local'}</p>
+                        </div>
+                      </div>
+
+                      {proxyRules && proxyRules.length > 0 ? (
+                        <div className="space-y-2">
+                          <Label className="font-medium text-gray-700">自动分配的子域名</Label>
+                          <div className="grid gap-2 max-h-48 overflow-y-auto">
+                            {proxyRules.map((rule: any) => (
+                              <div key={rule.subdomain} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div className="flex items-center space-x-3">
+                                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                  <div>
+                                    <p className="font-medium text-sm text-gray-900">{rule.serviceName}</p>
+                                    <p className="text-xs text-gray-500">→ {rule.target}</p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <span className="text-sm font-mono text-blue-600">
+                                    {rule.subdomain}.{settings?.defaultDomain || 'mixbox.local'}
+                                  </span>
+                                  <a
+                                    href={`http://${rule.subdomain}.${settings?.defaultDomain || 'mixbox.local'}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-gray-400 hover:text-gray-600"
+                                  >
+                                    <ExternalLink className="h-4 w-4" />
+                                  </a>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-gray-500">
+                          <Globe className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                          <p>暂无代理规则</p>
+                          <p className="text-sm">启动服务后会自动创建子域名</p>
+                        </div>
+                      )}
+
+                      <div className="pt-2 border-t">
+                        <Label className="font-medium text-gray-700">代理状态页面</Label>
+                        <p className="text-sm text-gray-500 mb-2">查看详细的代理状态和规则</p>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open('/proxy/status', '_blank')}
+                          className="flex items-center gap-1"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                          打开状态页面
+                        </Button>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
 

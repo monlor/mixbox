@@ -36,20 +36,6 @@ applications:
     tags: ["monitoring", "visualization", "dashboard"]
     configFile: "grafana.yaml"
 
-  - id: "traefik"
-    name: "traefik"
-    displayName: "Traefik"
-    description: "现代化反向代理和负载均衡器 - MixBox内置7层代理"
-    category: "network-tools"
-    version: "3.0"
-    stars: 45200
-    mainPort: 80
-    icon: "https://traefik.io/static/traefik-proxy-logo--white-82153be41e0ce620a921b4bce974f6d8.svg"
-    author: "Traefik Labs"
-    website: "https://traefik.io"
-    tags: ["proxy", "reverse-proxy", "load-balancer", "ssl"]
-    configFile: "traefik.yaml"
-
   - id: "nginx"
     name: "nginx"
     displayName: "Nginx"

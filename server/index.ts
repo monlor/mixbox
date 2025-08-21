@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { createDynamicProxy, generateProxyStatusPage, proxyManager } from "./proxy-server";
 
 const app = express();
 app.use(express.json());
@@ -37,7 +38,20 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // 初始化代理管理器
+  await proxyManager.initializeProxyRules();
+
   const server = await registerRoutes(app);
+
+  // 代理状态页面路由
+  app.get('/proxy/status', (req, res) => {
+    const html = generateProxyStatusPage();
+    res.setHeader('Content-Type', 'text/html');
+    res.send(html);
+  });
+
+  // 动态代理中间件 - 在API路由之后，在静态文件服务之前
+  app.use(createDynamicProxy());
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
