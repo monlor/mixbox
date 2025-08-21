@@ -8,6 +8,13 @@ Preferred communication style: Simple, everyday language.
 
 # System Architecture
 
+## Docker Operations Architecture
+- **Environment-Based Switching**: USE_MOCK environment variable controls mock vs real Docker operations (default: mock mode)
+- **Unified Interface**: DockerOperations interface provides consistent API for both mock and real implementations
+- **Mock Operations**: Full Docker service simulation with realistic delays and status management for development
+- **Real Operations**: Complete Docker API integration with container management, network setup, and volume handling
+- **Service Management**: Comprehensive CRUD operations for Docker containers with mixbox network integration
+
 ## Frontend Architecture
 - **Framework**: React with TypeScript, using Vite as the build tool
 - **UI Library**: Shadcn/UI components built on Radix UI primitives for consistent design

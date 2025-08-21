@@ -3,7 +3,7 @@ import * as path from 'path';
 import yaml from 'js-yaml';
 
 // Load applications from local YAML files
-function loadApplicationsFromYaml() {
+export function loadApplicationsFromYAML() {
   const appsDir = path.join(process.cwd(), 'apps');
   const applications = [];
 
@@ -49,7 +49,7 @@ function loadApplicationsFromYaml() {
 }
 
 // Mock data for development mode
-export const mockApplications = loadApplicationsFromYaml();
+export const mockApplications = loadApplicationsFromYAML();
 
 // Log loaded applications for debugging
 console.log(`Loaded ${mockApplications.length} applications from local YAML files:`, 
