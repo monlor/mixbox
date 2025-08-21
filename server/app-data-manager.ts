@@ -15,16 +15,33 @@ export interface Application {
   category: string;
   version: string;
   stars: number;
-  port: number;
+  mainPort: number;
   icon: string;
   author: string;
   website: string;
-  isInstalled: boolean;
-  hasUpdate: boolean;
-  yaml: string;
+  tags: string[];
+  configFile: string;
+  isInstalled?: boolean;
+  hasUpdate?: boolean;
+}
+
+export interface ApplicationCatalog {
+  metadata: {
+    name: string;
+    version: string;
+    description: string;
+    lastUpdate: string;
+  };
+  categories: {
+    id: string;
+    name: string;
+    description: string;
+  }[];
+  applications: Application[];
 }
 
 export interface AppDataManager {
+  loadCatalog(): Promise<ApplicationCatalog>;
   loadApplications(): Promise<Application[]>;
   getApplication(id: string): Promise<Application | null>;
   getApplicationYaml(id: string): Promise<string | null>;
@@ -32,78 +49,71 @@ export interface AppDataManager {
 
 // Local App Data Manager (for development/mock mode)
 class LocalAppDataManager implements AppDataManager {
-  private applications: Application[] = [];
-  private initialized = false;
+  private catalog: ApplicationCatalog | null = null;
+  private yamlCache: Map<string, string> = new Map();
 
   constructor() {
     console.log('📁 Using Local App Data Manager');
   }
 
-  private async initialize() {
-    if (this.initialized) return;
+  async loadCatalog(): Promise<ApplicationCatalog> {
+    if (this.catalog) return this.catalog;
+
+    const catalogPath = path.join(process.cwd(), 'apps', 'catalog.yaml');
     
-    const appsDir = path.join(process.cwd(), 'apps');
-    
-    if (!fs.existsSync(appsDir)) {
-      console.warn('Apps directory not found, using empty array');
-      this.applications = [];
-      this.initialized = true;
-      return;
+    if (!fs.existsSync(catalogPath)) {
+      throw new Error('catalog.yaml not found in apps directory');
     }
 
-    const files = fs.readdirSync(appsDir);
-    
-    for (const file of files) {
-      if (file.endsWith('.yaml') || file.endsWith('.yml')) {
-        try {
-          const filePath = path.join(appsDir, file);
-          const yamlContent = fs.readFileSync(filePath, 'utf8');
-          const appData = yaml.load(yamlContent) as any;
-          
-          if (appData.metadata) {
-            this.applications.push({
-              id: appData.metadata.id || file.replace(/\.(yaml|yml)$/, ''),
-              name: appData.metadata.name || file.replace(/\.(yaml|yml)$/, ''),
-              displayName: appData.metadata.displayName || appData.metadata.name,
-              description: appData.metadata.description || '',
-              category: appData.metadata.category || 'other',
-              version: appData.metadata.version || 'latest',
-              stars: appData.metadata.stars || 0,
-              port: appData.metadata.mainPort || 80,
-              icon: appData.metadata.icon || '',
-              author: appData.metadata.author || '',
-              website: appData.metadata.website || '',
-              isInstalled: false,
-              hasUpdate: false,
-              yaml: yamlContent
-            });
-          }
-        } catch (error) {
-          console.error(`Error loading ${file}:`, error);
-        }
-      }
+    try {
+      const catalogContent = fs.readFileSync(catalogPath, 'utf8');
+      this.catalog = yaml.load(catalogContent) as ApplicationCatalog;
+      
+      console.log(`Loaded catalog with ${this.catalog.applications.length} applications:`, 
+        this.catalog.applications.map(app => ({ id: app.id, name: app.displayName }))
+      );
+      
+      return this.catalog;
+    } catch (error) {
+      console.error('Error loading catalog.yaml:', error);
+      throw error;
     }
-    
-    console.log(`Loaded ${this.applications.length} applications from local YAML files:`, 
-      this.applications.map(app => ({ id: app.id, name: app.displayName }))
-    );
-    
-    this.initialized = true;
   }
 
   async loadApplications(): Promise<Application[]> {
-    await this.initialize();
-    return this.applications;
+    const catalog = await this.loadCatalog();
+    return catalog.applications;
   }
 
   async getApplication(id: string): Promise<Application | null> {
-    await this.initialize();
-    return this.applications.find(app => app.id === id) || null;
+    const catalog = await this.loadCatalog();
+    return catalog.applications.find(app => app.id === id) || null;
   }
 
   async getApplicationYaml(id: string): Promise<string | null> {
+    // Check cache first
+    if (this.yamlCache.has(id)) {
+      return this.yamlCache.get(id)!;
+    }
+
     const app = await this.getApplication(id);
-    return app ? app.yaml : null;
+    if (!app) return null;
+
+    const yamlPath = path.join(process.cwd(), 'apps', app.configFile);
+    
+    if (!fs.existsSync(yamlPath)) {
+      console.error(`Config file ${app.configFile} not found for application ${id}`);
+      return null;
+    }
+
+    try {
+      const yamlContent = fs.readFileSync(yamlPath, 'utf8');
+      this.yamlCache.set(id, yamlContent);
+      return yamlContent;
+    } catch (error) {
+      console.error(`Error loading YAML for ${id}:`, error);
+      return null;
+    }
   }
 }
 
@@ -112,9 +122,10 @@ class RemoteAppDataManager implements AppDataManager {
   private githubRepo: string;
   private githubBranch: string;
   private appsPath: string;
-  private cache: Map<string, Application> = new Map();
+  private catalogCache: ApplicationCatalog | null = null;
+  private yamlCache: Map<string, string> = new Map();
   private cacheExpiry: number = 5 * 60 * 1000; // 5 minutes
-  private lastFetch: number = 0;
+  private lastCatalogFetch: number = 0;
 
   constructor() {
     console.log('🌐 Using Remote App Data Manager');
@@ -149,111 +160,71 @@ class RemoteAppDataManager implements AppDataManager {
     }
   }
 
-  private async fetchApplicationFiles(): Promise<string[]> {
-    try {
-      const contents = await this.fetchGitHubContent(this.appsPath);
-      
-      if (!Array.isArray(contents)) {
-        console.warn('GitHub response is not an array, apps directory might not exist');
-        return [];
-      }
-      
-      return contents
-        .filter((item: any) => 
-          item.type === 'file' && 
-          (item.name.endsWith('.yaml') || item.name.endsWith('.yml'))
-        )
-        .map((item: any) => item.name);
-    } catch (error) {
-      console.error('Error fetching application file list:', error);
-      return [];
-    }
-  }
-
-  private async fetchApplicationYaml(filename: string): Promise<string | null> {
-    try {
-      const content = await this.fetchGitHubContent(`${this.appsPath}/${filename}`);
-      
-      if (content.type !== 'file' || !content.content) {
-        console.error(`Invalid content for ${filename}`);
-        return null;
-      }
-      
-      // Decode base64 content
-      return Buffer.from(content.content, 'base64').toString('utf8');
-    } catch (error) {
-      console.error(`Error fetching YAML for ${filename}:`, error);
-      return null;
-    }
-  }
-
-  private async refreshCache(): Promise<void> {
+  async loadCatalog(): Promise<ApplicationCatalog> {
     const now = Date.now();
-    if (now - this.lastFetch < this.cacheExpiry && this.cache.size > 0) {
-      return; // Cache is still valid
+    if (this.catalogCache && (now - this.lastCatalogFetch < this.cacheExpiry)) {
+      return this.catalogCache;
     }
 
-    console.log('🔄 Refreshing remote application cache...');
+    console.log('🔄 Fetching remote catalog...');
     
     try {
-      const filenames = await this.fetchApplicationFiles();
-      const newCache = new Map<string, Application>();
+      const catalogContent = await this.fetchGitHubContent(`${this.appsPath}/catalog.yaml`);
       
-      for (const filename of filenames) {
-        const yamlContent = await this.fetchApplicationYaml(filename);
-        if (!yamlContent) continue;
-        
-        try {
-          const appData = yaml.load(yamlContent) as any;
-          
-          if (appData.metadata) {
-            const app: Application = {
-              id: appData.metadata.id || filename.replace(/\.(yaml|yml)$/, ''),
-              name: appData.metadata.name || filename.replace(/\.(yaml|yml)$/, ''),
-              displayName: appData.metadata.displayName || appData.metadata.name,
-              description: appData.metadata.description || '',
-              category: appData.metadata.category || 'other',
-              version: appData.metadata.version || 'latest',
-              stars: appData.metadata.stars || 0,
-              port: appData.metadata.mainPort || 80,
-              icon: appData.metadata.icon || '',
-              author: appData.metadata.author || '',
-              website: appData.metadata.website || '',
-              isInstalled: false,
-              hasUpdate: false,
-              yaml: yamlContent
-            };
-            
-            newCache.set(app.id, app);
-          }
-        } catch (error) {
-          console.error(`Error parsing YAML for ${filename}:`, error);
-        }
+      if (catalogContent.type !== 'file' || !catalogContent.content) {
+        throw new Error('Invalid catalog.yaml content from GitHub');
       }
       
-      this.cache = newCache;
-      this.lastFetch = now;
+      const yamlContent = Buffer.from(catalogContent.content, 'base64').toString('utf8');
+      this.catalogCache = yaml.load(yamlContent) as ApplicationCatalog;
+      this.lastCatalogFetch = now;
       
-      console.log(`✅ Loaded ${this.cache.size} applications from remote repository`);
+      console.log(`✅ Loaded catalog with ${this.catalogCache.applications.length} applications`);
+      return this.catalogCache;
     } catch (error) {
-      console.error('Error refreshing application cache:', error);
-      // Keep using old cache if refresh fails
+      console.error('Error fetching remote catalog:', error);
+      if (this.catalogCache) {
+        console.log('Using cached catalog due to fetch error');
+        return this.catalogCache;
+      }
+      throw error;
     }
   }
 
   async loadApplications(): Promise<Application[]> {
-    await this.refreshCache();
-    return Array.from(this.cache.values());
+    const catalog = await this.loadCatalog();
+    return catalog.applications;
   }
 
   async getApplication(id: string): Promise<Application | null> {
-    await this.refreshCache();
-    return this.cache.get(id) || null;
+    const catalog = await this.loadCatalog();
+    return catalog.applications.find(app => app.id === id) || null;
   }
 
   async getApplicationYaml(id: string): Promise<string | null> {
+    // Check cache first
+    if (this.yamlCache.has(id)) {
+      return this.yamlCache.get(id)!;
+    }
+
     const app = await this.getApplication(id);
-    return app ? app.yaml : null;
+    if (!app) return null;
+
+    try {
+      const content = await this.fetchGitHubContent(`${this.appsPath}/${app.configFile}`);
+      
+      if (content.type !== 'file' || !content.content) {
+        console.error(`Invalid config file content for ${app.configFile}`);
+        return null;
+      }
+      
+      const yamlContent = Buffer.from(content.content, 'base64').toString('utf8');
+      this.yamlCache.set(id, yamlContent);
+      return yamlContent;
+    } catch (error) {
+      console.error(`Error fetching YAML for ${id}:`, error);
+      return null;
+    }
   }
 }
 

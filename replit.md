@@ -50,13 +50,14 @@ Preferred communication style: Simple, everyday language.
 - **Mock Operations**: Full Docker service simulation with realistic delays and status management for development
 
 ## Application Marketplace Architecture
+- **Centralized Catalog**: Uses `apps/catalog.yaml` as the single source of truth for application listings
+- **On-Demand Loading**: Application YAML configurations are loaded only when needed (installation/view)
 - **Unified Data Manager**: AppDataManager interface provides consistent API for both local and remote data sources
-- **Local Mode** (USE_MOCK=true): Direct file system reading from `/apps` directory for development
-- **Remote Mode** (USE_MOCK=false): GitHub API integration for fetching applications from remote repository
-- **Caching System**: 5-minute cache for remote data to reduce API calls and improve performance
-- **Discovery**: Category-based filtering and search functionality with real application metadata
-- **Installation**: One-click deployment from marketplace applications to running Docker services
-- **Configuration**: Complete YAML-based application definitions with environment variable customization
+- **Local Mode** (USE_MOCK=true): Loads catalog from local file system, fetches individual YAML configs on demand
+- **Remote Mode** (USE_MOCK=false): Fetches catalog from GitHub API, caches for 5 minutes, loads configs on demand
+- **Performance Optimization**: Avoids bulk loading of all YAML files, improving startup time and memory usage
+- **Category System**: Structured categorization with metadata for better application organization
+- **Installation Status**: Real-time comparison with deployed services to show installation and update status
 
 # External Dependencies
 

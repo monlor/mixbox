@@ -116,6 +116,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Applications/Marketplace routes
+  app.get('/api/applications/categories', isAuthenticated, async (req: any, res) => {
+    try {
+      const catalog = await appDataManager.loadCatalog();
+      res.json(catalog.categories);
+    } catch (error) {
+      console.error("Error loading application categories:", error);
+      res.status(500).json({ message: "Failed to load application categories" });
+    }
+  });
+
   app.get('/api/applications', isAuthenticated, async (req: any, res) => {
     try {
       const applications = await appDataManager.loadApplications();
