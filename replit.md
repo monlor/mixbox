@@ -46,7 +46,9 @@ Preferred communication style: Simple, everyday language.
 - **Configuration Format**: Standardized YAML-based service definitions with metadata, spec, and services sections
 - **Docker Integration**: Complete Docker Compose generation from YAML configurations with mock service simulation
 - **Service Lifecycle**: Create, update, start, stop, and delete operations for containerized services
-- **Built-in Proxy Server**: Native HTTP reverse proxy with automatic subdomain assignment for all services
+- **Dynamic Proxy System**: Intelligent Layer 7 proxy that automatically routes subdomain requests to running Docker services
+- **Zero-Configuration Routing**: Automatically detects service availability and routes traffic without manual rule management
+- **Docker Network Integration**: Uses internal Docker networking (http://servicename:port) for optimal performance
 - **Domain Management**: Automatic domain allocation using configurable default domain (e.g., service.mixbox.com)
 - **Mock Operations**: Full Docker service simulation with realistic delays and status management for development
 

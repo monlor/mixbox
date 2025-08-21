@@ -107,11 +107,11 @@ export default function Settings() {
   useEffect(() => {
     if (settings) {
       form.reset({
-        dockerSocket: settings.dockerSocket,
-        defaultDomain: settings.defaultDomain,
-        sslEnabled: settings.sslEnabled,
-        githubRepo: settings.githubRepo,
-        updateFrequency: settings.updateFrequency,
+        dockerSocket: (settings as any).dockerSocket || "/var/run/docker.sock",
+        defaultDomain: (settings as any).defaultDomain || "mixbox.local",
+        sslEnabled: (settings as any).sslEnabled || false,
+        githubRepo: (settings as any).githubRepo || "",
+        updateFrequency: (settings as any).updateFrequency || "daily",
       });
     }
   }, [settings, form]);
@@ -323,51 +323,62 @@ export default function Settings() {
                         </div>
                         <div>
                           <Label className="font-medium text-gray-700">活跃规则</Label>
-                          <p className="text-gray-600 pt-1">{proxyRules?.length || 0} 个</p>
+                          <p className="text-gray-600 pt-1">{(proxyRules as any)?.length || 0} 个</p>
                         </div>
                         <div>
                           <Label className="font-medium text-gray-700">默认域名</Label>
-                          <p className="text-gray-600 pt-1">{settings?.defaultDomain || 'mixbox.local'}</p>
+                          <p className="text-gray-600 pt-1">{(settings as any)?.defaultDomain || 'mixbox.local'}</p>
                         </div>
                       </div>
 
-                      {proxyRules && proxyRules.length > 0 ? (
-                        <div className="space-y-2">
-                          <Label className="font-medium text-gray-700">自动分配的子域名</Label>
-                          <div className="grid gap-2 max-h-48 overflow-y-auto">
-                            {proxyRules.map((rule: any) => (
-                              <div key={rule.subdomain} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                <div className="flex items-center space-x-3">
-                                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                  <div>
-                                    <p className="font-medium text-sm text-gray-900">{rule.serviceName}</p>
-                                    <p className="text-xs text-gray-500">→ {rule.target}</p>
+                      <div className="space-y-4">
+                        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                          <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">智能动态代理</h4>
+                          <p className="text-sm text-blue-700 dark:text-blue-300">
+                            MixBox 现在使用智能动态代理，自动识别子域名访问并路由到对应的运行中服务。
+                            无需预配置规则，访问 servicename.{(settings as any)?.defaultDomain || 'mixbox.local'} 
+                            即可自动路由到相应服务。
+                          </p>
+                        </div>
+
+                        {(proxyRules as any) && (proxyRules as any).length > 0 ? (
+                          <div className="space-y-2">
+                            <Label className="font-medium text-gray-700">当前可用的服务域名</Label>
+                            <div className="grid gap-2 max-h-48 overflow-y-auto">
+                              {(proxyRules as any).map((rule: any) => (
+                                <div key={rule.subdomain} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                  <div className="flex items-center space-x-3">
+                                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                    <div>
+                                      <p className="font-medium text-sm text-gray-900">{rule.serviceName}</p>
+                                      <p className="text-xs text-gray-500">动态路由到: {rule.target}</p>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <span className="text-sm font-mono text-blue-600">
+                                      {rule.subdomain}.{(settings as any)?.defaultDomain || 'mixbox.local'}
+                                    </span>
+                                    <a
+                                      href={`http://${rule.subdomain}.${(settings as any)?.defaultDomain || 'mixbox.local'}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-gray-400 hover:text-gray-600"
+                                    >
+                                      <ExternalLink className="h-4 w-4" />
+                                    </a>
                                   </div>
                                 </div>
-                                <div className="flex items-center space-x-2">
-                                  <span className="text-sm font-mono text-blue-600">
-                                    {rule.subdomain}.{settings?.defaultDomain || 'mixbox.local'}
-                                  </span>
-                                  <a
-                                    href={`http://${rule.subdomain}.${settings?.defaultDomain || 'mixbox.local'}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-gray-400 hover:text-gray-600"
-                                  >
-                                    <ExternalLink className="h-4 w-4" />
-                                  </a>
-                                </div>
-                              </div>
-                            ))}
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      ) : (
-                        <div className="text-center py-8 text-gray-500">
-                          <Globe className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                          <p>暂无代理规则</p>
-                          <p className="text-sm">启动服务后会自动创建子域名</p>
-                        </div>
-                      )}
+                        ) : (
+                          <div className="text-center py-6 text-gray-500">
+                            <Globe className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                            <p>暂无运行中的服务</p>
+                            <p className="text-sm">启动服务后将自动提供域名访问</p>
+                          </div>
+                        )}
+                      </div>
 
                       <div className="pt-2 border-t">
                         <Label className="font-medium text-gray-700">代理状态页面</Label>

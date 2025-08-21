@@ -272,7 +272,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // 更新代理管理器的默认域名
       if (updates.defaultDomain) {
         proxyManager.setDefaultDomain(updates.defaultDomain);
-        await proxyManager.updateProxyRules();
       }
       
       res.json(settings);
@@ -285,7 +284,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 代理管理路由
   app.get('/api/proxy/rules', isAuthenticated, async (req: any, res) => {
     try {
-      const rules = proxyManager.getAllRules();
+      const rules = await proxyManager.getAllActiveServices();
       res.json(rules);
     } catch (error) {
       console.error("Error fetching proxy rules:", error);
@@ -295,8 +294,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/proxy/refresh', isAuthenticated, async (req: any, res) => {
     try {
-      await proxyManager.updateProxyRules();
-      const rules = proxyManager.getAllRules();
+      const rules = await proxyManager.getAllActiveServices();
       res.json({ message: "Proxy rules refreshed", rules });
     } catch (error) {
       console.error("Error refreshing proxy rules:", error);

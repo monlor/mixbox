@@ -39,13 +39,13 @@ app.use((req, res, next) => {
 
 (async () => {
   // 初始化代理管理器
-  await proxyManager.initializeProxyRules();
+  await proxyManager.initializeProxy();
 
   const server = await registerRoutes(app);
 
   // 代理状态页面路由
-  app.get('/proxy/status', (req, res) => {
-    const html = generateProxyStatusPage();
+  app.get('/proxy/status', async (req, res) => {
+    const html = await generateProxyStatusPage();
     res.setHeader('Content-Type', 'text/html');
     res.send(html);
   });

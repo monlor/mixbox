@@ -11,62 +11,69 @@ export interface ProxyRule {
 }
 
 class ProxyManager {
-  private proxyRules: Map<string, ProxyRule> = new Map();
   private defaultDomain: string = 'mixbox.local';
 
   constructor() {
-    this.initializeProxyRules();
+    this.initializeProxy();
   }
 
-  async initializeProxyRules() {
+  async initializeProxy() {
     try {
       // 获取系统设置中的默认域名
       const settings = await storage.getSettings('system');
       if (settings?.defaultDomain) {
         this.defaultDomain = settings.defaultDomain;
       }
-
-      // 获取所有运行中的服务并设置代理规则
-      await this.updateProxyRules();
+      console.log(`🌐 Proxy server initialized with domain: ${this.defaultDomain}`);
     } catch (error) {
-      console.error('Failed to initialize proxy rules:', error);
+      console.error('Failed to initialize proxy:', error);
     }
   }
 
-  async updateProxyRules() {
+  async resolveServiceTarget(subdomain: string): Promise<ProxyRule | null> {
     try {
+      // 获取所有服务
       const services = await dockerOperations.listServices();
-      this.proxyRules.clear();
-
-      for (const service of services) {
-        if (service.status === 'running' && service.name !== 'mixbox-proxy') {
-          const subdomain = service.name;
-          const port = this.extractPort(service.ports);
-          
-          if (port) {
-            const rule: ProxyRule = {
-              subdomain,
-              serviceName: service.name,
-              port,
-              target: `http://localhost:${port}`
-            };
-            
-            this.proxyRules.set(subdomain, rule);
-            console.log(`🌐 Proxy rule added: ${subdomain}.${this.defaultDomain} -> ${rule.target}`);
-          }
-        }
+      
+      // 查找匹配的服务
+      const service = services.find(s => s.name === subdomain && s.status === 'running');
+      
+      if (!service) {
+        console.log(`🌐 Service '${subdomain}' not found or not running`);
+        return null;
       }
+
+      // 动态构建代理目标 - 使用Docker网络内的服务名和端口
+      const internalPort = this.extractInternalPort(service.ports);
+      if (!internalPort) {
+        console.log(`🌐 No internal port found for service '${subdomain}'`);
+        return null;
+      }
+
+      const target = `http://${service.name}:${internalPort}`;
+      
+      const rule: ProxyRule = {
+        subdomain,
+        serviceName: service.name,
+        port: internalPort,
+        target
+      };
+
+      console.log(`🌐 Dynamic proxy: ${subdomain}.${this.defaultDomain} -> ${target}`);
+      return rule;
+      
     } catch (error) {
-      console.error('Failed to update proxy rules:', error);
+      console.error(`Failed to resolve service target for ${subdomain}:`, error);
+      return null;
     }
   }
 
-  private extractPort(ports: string[]): number | null {
+  private extractInternalPort(ports: string[]): number | null {
     if (!ports || ports.length === 0) return null;
     
-    // 查找主机端口映射，格式如 "8080:80"
+    // 查找端口映射，格式如 "8080:80"，我们需要内部端口（80）
     for (const portMapping of ports) {
-      const match = portMapping.match(/^(\d+):/);
+      const match = portMapping.match(/^\d+:(\d+)$/);
       if (match) {
         return parseInt(match[1], 10);
       }
@@ -75,34 +82,40 @@ class ProxyManager {
     return null;
   }
 
-  getProxyRule(subdomain: string): ProxyRule | undefined {
-    return this.proxyRules.get(subdomain);
+  async getAllActiveServices(): Promise<ProxyRule[]> {
+    try {
+      const services = await dockerOperations.listServices();
+      const activeRules: ProxyRule[] = [];
+
+      for (const service of services) {
+        if (service.status === 'running' && service.name !== 'mixbox-proxy') {
+          const internalPort = this.extractInternalPort(service.ports);
+          if (internalPort) {
+            const rule: ProxyRule = {
+              subdomain: service.name,
+              serviceName: service.name,
+              port: internalPort,
+              target: `http://${service.name}:${internalPort}`
+            };
+            activeRules.push(rule);
+          }
+        }
+      }
+
+      return activeRules;
+    } catch (error) {
+      console.error('Failed to get active services:', error);
+      return [];
+    }
   }
 
-  getAllRules(): ProxyRule[] {
-    return Array.from(this.proxyRules.values());
+  getDefaultDomain(): string {
+    return this.defaultDomain;
   }
 
-  async addServiceProxy(serviceName: string, port: number): Promise<string> {
-    const subdomain = serviceName;
-    const domain = `${subdomain}.${this.defaultDomain}`;
-    
-    const rule: ProxyRule = {
-      subdomain,
-      serviceName,
-      port,
-      target: `http://localhost:${port}`
-    };
-    
-    this.proxyRules.set(subdomain, rule);
-    console.log(`🌐 Added proxy: ${domain} -> ${rule.target}`);
-    
-    return domain;
-  }
-
-  removeServiceProxy(serviceName: string) {
-    this.proxyRules.delete(serviceName);
-    console.log(`🌐 Removed proxy for service: ${serviceName}`);
+  setDefaultDomain(domain: string) {
+    this.defaultDomain = domain;
+    console.log(`🌐 Updated default domain to: ${domain}`);
   }
 
   setDefaultDomain(domain: string) {
@@ -117,7 +130,7 @@ class ProxyManager {
 // 创建全局代理管理器实例
 export const proxyManager = new ProxyManager();
 
-// 代理中间件工厂函数
+// 动态代理中间件工厂函数
 export function createDynamicProxy() {
   return async (req: Request, res: Response, next: NextFunction) => {
     const host = req.get('host');
@@ -125,17 +138,41 @@ export function createDynamicProxy() {
       return next();
     }
 
-    // 解析子域名
+    // 解析子域名 - 检查是否为真正的子域名请求
     const hostParts = host.split('.');
-    if (hostParts.length < 2) {
+    
+    // 跳过非子域名请求 (如 localhost:5000, 127.0.0.1:5000 等)
+    if (hostParts.length < 3) {
       return next();
     }
 
     const subdomain = hostParts[0];
-    const proxyRule = proxyManager.getProxyRule(subdomain);
-
-    if (!proxyRule) {
+    const baseDomain = hostParts.slice(1).join('.');
+    
+    // 跳过www和其他常见前缀
+    if (subdomain === 'www' || subdomain === 'api') {
       return next();
+    }
+
+    // 只处理匹配默认域名的子域名请求
+    const defaultDomain = proxyManager.getDefaultDomain();
+    if (!baseDomain.includes(defaultDomain.split('.')[0])) {
+      return next();
+    }
+
+    console.log(`🌐 Processing subdomain request: ${subdomain}.${baseDomain}`);
+
+    // 动态解析服务目标
+    const proxyRule = await proxyManager.resolveServiceTarget(subdomain);
+    
+    if (!proxyRule) {
+      // 返回404而不是继续到下一个中间件
+      return res.status(404).json({
+        error: 'Service Not Found',
+        message: `Service '${subdomain}' is not installed or not running`,
+        subdomain: subdomain,
+        availableDomain: `${subdomain}.${defaultDomain}`
+      });
     }
 
     // 创建代理中间件
@@ -146,7 +183,7 @@ export function createDynamicProxy() {
       timeout: 30000,
       proxyTimeout: 30000,
       onError: (err: any, req: any, res: any) => {
-        console.error(`Proxy error for ${subdomain}:`, err.message);
+        console.error(`🌐 Proxy error for ${subdomain}:`, err.message);
         if (!res.headersSent) {
           res.status(502).json({
             error: 'Bad Gateway',
@@ -166,8 +203,8 @@ export function createDynamicProxy() {
 }
 
 // 代理状态页面生成器
-export function generateProxyStatusPage(): string {
-  const rules = proxyManager.getAllRules();
+export async function generateProxyStatusPage(): Promise<string> {
+  const rules = await proxyManager.getAllActiveServices();
   const defaultDomain = proxyManager.getDefaultDomain();
   
   return `

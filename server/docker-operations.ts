@@ -157,13 +157,7 @@ class MockDockerOperations implements DockerOperations {
 
     console.log(`Mock: Removing service ${service.displayName} (deleteData: ${deleteData})`);
     
-    // 从代理管理器中移除服务
-    try {
-      const { proxyManager } = await import('./proxy-server');
-      proxyManager.removeServiceProxy(service.name);
-    } catch (error) {
-      console.warn('Failed to remove service from proxy manager:', error);
-    }
+    // 代理现在是动态处理的，无需手动移除
 
     this.services.delete(serviceId);
   }
@@ -234,16 +228,7 @@ class MockDockerOperations implements DockerOperations {
 
     this.services.set(serviceId, service);
 
-    // 通知代理管理器添加新服务
-    if (mainPort) {
-      try {
-        // 动态导入避免循环依赖
-        const { proxyManager } = await import('./proxy-server');
-        await proxyManager.addServiceProxy(config.metadata.name, mainPort);
-      } catch (error) {
-        console.warn('Failed to register service with proxy manager:', error);
-      }
-    }
+    // 代理现在是动态处理的，无需手动注册
 
     return service;
   }
